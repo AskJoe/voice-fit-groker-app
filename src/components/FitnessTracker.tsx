@@ -57,10 +57,10 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       initializePlans();
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (user && mealPlans.length > 0) {
