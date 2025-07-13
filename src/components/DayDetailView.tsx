@@ -349,8 +349,9 @@ export function DayDetailView({
           </CardHeader>
           <CardContent className="space-y-4">
             {workoutPlan.exercises.map((exercise, index) => {
-              // Create a consistent unique ID for each exercise
-              const exerciseId = `exercise-${workoutPlan.day.toLowerCase()}-${index}`;
+              // Generate a consistent UUID based on workout plan ID and exercise index
+              // This ensures the same exercise always gets the same ID
+              const exerciseId = `${workoutPlan.id}-${index}`;
               const log = getLogForItem(exerciseId, 'exercise');
               const isCompleted = log?.completed || false;
               const displayDetails = log?.modified_details || exercise;
