@@ -394,7 +394,7 @@ export function DayDetailView({
                         <div>
                           <label className="text-sm font-medium">Items (one per line)</label>
                           <Textarea
-                            value={(editData.items || displayDetails.items).join('\n')}
+                            value={(editData.items || displayDetails.items || []).join('\n')}
                             onChange={(e) => setEditData({
                               ...editData,
                               items: e.target.value.split('\n').filter(item => item.trim())
@@ -418,7 +418,7 @@ export function DayDetailView({
                 </div>
                 
                 <ul className="space-y-1 ml-8">
-                  {displayDetails.items.map((item: string, index: number) => (
+                  {(displayDetails.items || []).map((item: string, index: number) => (
                     <li key={index} className="text-sm text-white/80 flex items-center gap-2">
                       <span className="w-1 h-1 bg-white/60 rounded-full"></span>
                       {item}
