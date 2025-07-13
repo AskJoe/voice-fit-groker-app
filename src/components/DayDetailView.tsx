@@ -92,13 +92,17 @@ export function DayDetailView({
   const getDailyNutritionTotals = () => {
     return mealPlans.reduce((totals, meal) => {
       const log = getLogForItem(meal.id, 'meal');
-      const details = log?.modified_details || meal.details;
-      return {
-        calories: totals.calories + (details.calories || 0),
-        protein: totals.protein + (details.protein || 0),
-        fat: totals.fat + (details.fat || 0),
-        carbs: totals.carbs + (details.carbs || 0)
-      };
+      // Only count calories if the meal is marked as completed
+      if (log?.completed) {
+        const details = log?.modified_details || meal.details;
+        return {
+          calories: totals.calories + (details.calories || 0),
+          protein: totals.protein + (details.protein || 0),
+          fat: totals.fat + (details.fat || 0),
+          carbs: totals.carbs + (details.carbs || 0)
+        };
+      }
+      return totals;
     }, { calories: 0, protein: 0, fat: 0, carbs: 0 });
   };
 
@@ -115,7 +119,8 @@ export function DayDetailView({
       {/* Daily Nutrition Summary */}
       <Card className="bg-white/10 backdrop-blur-sm border-white/20">
         <CardHeader>
-          <CardTitle className="text-center text-white">Daily Nutrition Totals</CardTitle>
+          <CardTitle className="text-center text-white">Daily Nutrition Progress</CardTitle>
+          <p className="text-center text-white/70 text-sm">Only completed meals count toward totals</p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">

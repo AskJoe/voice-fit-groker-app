@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight, BarChart3, Calendar as CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { WeeklyCalendar } from '@/components/WeeklyCalendar';
 import { DayDetailView } from '@/components/DayDetailView';
+import { WeightEntry } from '@/components/WeightEntry';
+import { ProgressDashboard } from '@/components/ProgressDashboard';
 import { addWeeks, subWeeks, format } from 'date-fns';
 
 interface MealPlan {
@@ -51,6 +53,7 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [activeView, setActiveView] = useState<'calendar' | 'dashboard'>('calendar');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -380,58 +383,98 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
             <h1 className="text-4xl font-bold text-white mb-2">FitTracker</h1>
             <p className="text-white/80">Welcome back, {user.email?.split('@')[0]}!</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onSignOut}
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-          >
-            <LogOut className="w-4 h-4 mr-1" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="flex bg-white/10 rounded-lg p-1">
+              <Button
+                variant={activeView === 'calendar' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveView('calendar')}
+                className={activeView === 'calendar' ? 'bg-white text-black' : 'text-white hover:bg-white/20'}
+              >
+                <CalendarIcon className="w-4 h-4 mr-1" />
+                Calendar
+              </Button>
+              <Button
+                variant={activeView === 'dashboard' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveView('dashboard')}
+                className={activeView === 'dashboard' ? 'bg-white text-black' : 'text-white hover:bg-white/20'}
+              >
+                <BarChart3 className="w-4 h-4 mr-1" />
+                Dashboard
+              </Button>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSignOut}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
-        {/* Week Navigation */}
-        <div className="flex items-center justify-between mb-6">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePreviousWeek}
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Previous Week
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNextWeek}
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-          >
-            Next Week
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </div>
+        {activeView === 'calendar' ? (
+          <>
+            {/* Week Navigation */}
+            <div className="flex items-center justify-between mb-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePreviousWeek}
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous Week
+              </Button>
+              
+              <div className="flex items-center gap-2">
+                {format(selectedDate, 'EEEE') === 'Friday' && (
+                  <WeightEntry 
+                    user={user} 
+                    selectedDate={selectedDate}
+                    onWeightSaved={() => {
+                      // Could trigger a refresh of dashboard data here
+                    }}
+                  />
+                )}
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextWeek}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  Next Week
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
 
-        {/* Weekly Calendar */}
-        <div className="mb-8">
-          <WeeklyCalendar
-            selectedDate={selectedDate}
-            onDateSelect={setSelectedDate}
-            weekStartsOn={0}
-          />
-        </div>
+            {/* Weekly Calendar */}
+            <div className="mb-8">
+              <WeeklyCalendar
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
+                weekStartsOn={0}
+              />
+            </div>
 
-        {/* Day Detail View */}
-        <DayDetailView
-          selectedDate={selectedDate}
-          mealPlans={mealPlans}
-          workoutPlan={workoutForSelectedDay}
-          dailyLogs={dailyLogs}
-          onToggleComplete={handleToggleComplete}
-          onUpdateDetails={handleUpdateDetails}
-        />
+            {/* Day Detail View */}
+            <DayDetailView
+              selectedDate={selectedDate}
+              mealPlans={mealPlans}
+              workoutPlan={workoutForSelectedDay}
+              dailyLogs={dailyLogs}
+              onToggleComplete={handleToggleComplete}
+              onUpdateDetails={handleUpdateDetails}
+            />
+          </>
+        ) : (
+          <ProgressDashboard user={user} />
+        )}
       </div>
     </div>
   );
