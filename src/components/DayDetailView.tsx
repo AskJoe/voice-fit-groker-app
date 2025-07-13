@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Utensils, Dumbbell, Edit3, Save, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { AddItemForm } from './AddItemForm';
 
 interface MealPlan {
   id: string;
@@ -51,17 +52,21 @@ interface DayDetailViewProps {
   mealPlans: MealPlan[];
   workoutPlan?: WorkoutPlan;
   dailyLogs: DailyLog[];
+  userId: string;
   onToggleComplete: (itemId: string, itemType: 'meal' | 'exercise', completed: boolean) => void;
   onUpdateDetails: (itemId: string, itemType: 'meal' | 'exercise', details: any) => void;
+  onRefresh: () => void;
 }
 
 export function DayDetailView({ 
   selectedDate, 
   mealPlans, 
   workoutPlan, 
-  dailyLogs,
-  onToggleComplete,
-  onUpdateDetails 
+  dailyLogs, 
+  userId,
+  onToggleComplete, 
+  onUpdateDetails,
+  onRefresh
 }: DayDetailViewProps) {
   const [editingItem, setEditingItem] = useState<{ id: string; type: 'meal' | 'exercise' } | null>(null);
   const [editData, setEditData] = useState<any>({});

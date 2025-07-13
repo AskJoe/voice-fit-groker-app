@@ -468,8 +468,10 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
               mealPlans={mealPlans}
               workoutPlan={workoutForSelectedDay}
               dailyLogs={dailyLogs}
+              userId={user.id}
               onToggleComplete={handleToggleComplete}
               onUpdateDetails={handleUpdateDetails}
+              onRefresh={loadDailyLogs}
             />
           </>
         ) : (

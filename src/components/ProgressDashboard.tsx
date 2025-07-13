@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingUp, Scale, Utensils, Dumbbell, Calendar } from 'lucide-react';
+import { TrendingUp, Scale, Utensils, Dumbbell, Calendar, Brain, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { format, subDays, parseISO } from 'date-fns';
+import { performWeeklyAnalysis, WeeklyAnalysisResult } from '@/utils/weeklyAnalysis';
 
 interface ProgressDashboardProps {
   user: User;
@@ -35,12 +37,28 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
   const [nutritionData, setNutritionData] = useState<NutritionData[]>([]);
   const [workoutData, setWorkoutData] = useState<WorkoutData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [analysisResult, setAnalysisResult] = useState<WeeklyAnalysisResult | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
       loadProgressData();
+      loadWeeklyAnalysis();
     }
   }, [user]);
+
+  const loadWeeklyAnalysis = async () => {
+    setAnalysisLoading(true);
+    try {
+      const result = await performWeeklyAnalysis(user.id);
+      setAnalysisResult(result);
+    } catch (error) {
+      console.error('Error loading weekly analysis:', error);
+      setAnalysisResult({ error: 'Failed to load analysis' });
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
 
   const loadProgressData = async () => {
     try {
@@ -257,10 +275,14 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
 
       {/* Detailed Tabs */}
       <Tabs defaultValue="weight" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-white/10">
+        <TabsList className="grid w-full grid-cols-4 bg-white/10">
           <TabsTrigger value="weight" className="data-[state=active]:bg-white/20">Weight</TabsTrigger>
           <TabsTrigger value="nutrition" className="data-[state=active]:bg-white/20">Nutrition</TabsTrigger>
           <TabsTrigger value="workouts" className="data-[state=active]:bg-white/20">Workouts</TabsTrigger>
+          <TabsTrigger value="ai-insights" className="data-[state=active]:bg-white/20 flex items-center gap-1">
+            <Brain className="w-3 h-3" />
+            AI Insights
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="weight" className="space-y-4">
@@ -335,6 +357,71 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ai-insights" className="space-y-4">
+          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Brain className="w-5 h-5" />
+                  AI Weekly Analysis
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadWeeklyAnalysis}
+                  disabled={analysisLoading}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  {analysisLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {analysisLoading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-white" />
+                  <p className="text-white/70">Analyzing your progress...</p>
+                </div>
+              ) : analysisResult?.analysis ? (
+                <div className="prose prose-invert max-w-none">
+                  <div className="text-white/90 whitespace-pre-wrap leading-relaxed">
+                    {analysisResult.analysis}
+                  </div>
+                  <div className="mt-4 p-3 bg-white/5 rounded-lg">
+                    <p className="text-sm text-white/60">
+                      Analysis updated: {new Date().toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ) : analysisResult?.message ? (
+                <div className="text-center py-8">
+                  <Brain className="w-12 h-12 mx-auto mb-4 text-white/40" />
+                  <p className="text-white/70 mb-2">{analysisResult.message}</p>
+                  <p className="text-sm text-white/50">
+                    Keep logging your progress to unlock AI insights!
+                  </p>
+                </div>
+              ) : analysisResult?.error ? (
+                <div className="text-center py-8">
+                  <p className="text-red-400 mb-2">⚠️ {analysisResult.error}</p>
+                  <p className="text-sm text-white/50">
+                    Make sure you have an OpenAI API key configured.
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Brain className="w-12 h-12 mx-auto mb-4 text-white/40" />
+                  <p className="text-white/70">Loading analysis...</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
