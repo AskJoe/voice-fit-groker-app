@@ -23,6 +23,8 @@ interface MealPlan {
     items: string[];
     calories: number;
     protein: number;
+    fat: number;
+    carbs: number;
   };
 }
 
@@ -87,6 +89,21 @@ export function DayDetailView({
     setEditData({});
   };
 
+  const getDailyNutritionTotals = () => {
+    return mealPlans.reduce((totals, meal) => {
+      const log = getLogForItem(meal.id, 'meal');
+      const details = log?.modified_details || meal.details;
+      return {
+        calories: totals.calories + details.calories,
+        protein: totals.protein + details.protein,
+        fat: totals.fat + details.fat,
+        carbs: totals.carbs + details.carbs
+      };
+    }, { calories: 0, protein: 0, fat: 0, carbs: 0 });
+  };
+
+  const nutritionTotals = getDailyNutritionTotals();
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -94,6 +111,33 @@ export function DayDetailView({
           {format(selectedDate, 'EEEE, MMMM d, yyyy')}
         </h3>
       </div>
+
+      {/* Daily Nutrition Summary */}
+      <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+        <CardHeader>
+          <CardTitle className="text-center text-white">Daily Nutrition Totals</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-2xl font-bold text-white">{nutritionTotals.calories}</div>
+              <div className="text-sm text-white/70">Calories</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-2xl font-bold text-white">{nutritionTotals.protein}g</div>
+              <div className="text-sm text-white/70">Protein</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-2xl font-bold text-white">{nutritionTotals.fat}g</div>
+              <div className="text-sm text-white/70">Fat</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-2xl font-bold text-white">{nutritionTotals.carbs}g</div>
+              <div className="text-sm text-white/70">Carbs</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Meals Section */}
       <Card className="bg-white/10 backdrop-blur-sm border-white/20">
@@ -129,6 +173,12 @@ export function DayDetailView({
                         </Badge>
                         <Badge variant="outline" className="text-xs">
                           {displayDetails.protein}g protein
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {displayDetails.fat}g fat
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {displayDetails.carbs}g carbs
                         </Badge>
                       </div>
                     </div>
@@ -169,6 +219,28 @@ export function DayDetailView({
                             onChange={(e) => setEditData({
                               ...editData,
                               protein: parseInt(e.target.value) || 0
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Fat (g)</label>
+                          <Input
+                            type="number"
+                            value={editData.fat || displayDetails.fat}
+                            onChange={(e) => setEditData({
+                              ...editData,
+                              fat: parseInt(e.target.value) || 0
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Carbs (g)</label>
+                          <Input
+                            type="number"
+                            value={editData.carbs || displayDetails.carbs}
+                            onChange={(e) => setEditData({
+                              ...editData,
+                              carbs: parseInt(e.target.value) || 0
                             })}
                           />
                         </div>
@@ -223,7 +295,8 @@ export function DayDetailView({
           </CardHeader>
           <CardContent className="space-y-4">
             {workoutPlan.exercises.map((exercise, index) => {
-              const exerciseId = `${workoutPlan.id}-${index}`;
+              // Create a consistent unique ID for each exercise
+              const exerciseId = `exercise-${workoutPlan.day.toLowerCase()}-${index}`;
               const log = getLogForItem(exerciseId, 'exercise');
               const isCompleted = log?.completed || false;
               const displayDetails = log?.modified_details || exercise;

@@ -15,6 +15,8 @@ interface MealPlan {
     items: string[];
     calories: number;
     protein: number;
+    fat: number;
+    carbs: number;
   };
 }
 
@@ -81,7 +83,9 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
             details: { 
               items: ['3 large eggs (scrambled or boiled)', '1 medium bagel with cream cheese', '1 cup plain Greek yogurt'], 
               calories: 720, 
-              protein: 42 
+              protein: 42,
+              fat: 28,
+              carbs: 45
             } 
           },
           { 
@@ -89,7 +93,9 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
             details: { 
               items: ['6 oz grilled chicken breast', '1.5 cups cooked white rice', '1 oz almonds (about 23 nuts)'], 
               calories: 680, 
-              protein: 58 
+              protein: 58,
+              fat: 18,
+              carbs: 72
             } 
           },
           { 
@@ -97,7 +103,9 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
             details: { 
               items: ['8 oz grilled lean steak (sirloin)', '1 large baked sweet potato (about 5 inches)', '1 oz walnuts (about 14 halves)'], 
               calories: 820, 
-              protein: 64 
+              protein: 64,
+              fat: 32,
+              carbs: 38
             } 
           },
           { 
@@ -105,7 +113,9 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
             details: { 
               items: ['2 large hard-boiled eggs', '1 cup cooked pasta with olive oil'], 
               calories: 480, 
-              protein: 22 
+              protein: 22,
+              fat: 18,
+              carbs: 52
             } 
           }
         ];
