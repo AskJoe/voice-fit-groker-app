@@ -75,6 +75,19 @@ CRITICAL RULES for quantity parsing:
 - Use precise units: "grams", "cups", "tablespoons", "ounces", "pieces", "slices", etc.
 - The quantities will be used to calculate accurate nutrition via USDA database lookup
 
+CRITICAL CALORIE ESTIMATION RULES (these are TEMPORARY estimates, will be replaced by database):
+- Be CONSERVATIVE with calorie estimates - better to underestimate than overestimate
+- Use these as rough guidelines for common foods:
+  * Chicken breast: ~165 cal/100g
+  * Cheese: ~400 cal/100g  
+  * Rice/grains: ~130 cal/100g
+  * Vegetables: ~20-50 cal/100g
+  * Tortillas: ~220 cal/100g
+  * Bread: ~250 cal/100g
+- For mixed meals, estimate portions carefully
+- If uncertain, use lower calorie estimates
+- Maximum reasonable calories for a normal meal: 800-1000
+
 Examples:
 - "3 corn tortillas" → {"item": "corn tortillas", "amount": 3, "unit": "tortillas"}
 - "106 grams chicken" → {"item": "chicken", "amount": 106, "unit": "grams"}  
@@ -189,12 +202,13 @@ Return only valid JSON, no additional text:`;
             let usdaItemsFound = 0;
 
             console.log('=== PROCESSING USDA RESULTS ===');
+            let fallbackItemsFound = 0;
             for (const result of usdaData.results) {
               console.log(`Processing result for item: ${result.item}`);
               console.log(`Result source: ${result.source}`);
               console.log(`Result nutrients:`, result.nutrients);
               
-              if (result.nutrients && result.source === 'USDA') {
+              if (result.nutrients && (result.source === 'USDA' || result.source === 'FALLBACK_DB')) {
                 const itemCalories = result.nutrients.calories || 0;
                 const itemProtein = result.nutrients.protein || 0;
                 const itemFat = result.nutrients.fat || 0;
@@ -206,31 +220,57 @@ Return only valid JSON, no additional text:`;
                 totalProtein += itemProtein;
                 totalFat += itemFat;
                 totalCarbs += itemCarbs;
-                usdaItemsFound++;
+                
+                if (result.source === 'USDA') {
+                  usdaItemsFound++;
+                } else {
+                  fallbackItemsFound++;
+                }
               }
             }
 
             console.log('=== FINAL TOTALS ===');
-            console.log(`Total calories from USDA: ${totalCalories}`);
-            console.log(`Total protein from USDA: ${totalProtein}`);
-            console.log(`Total fat from USDA: ${totalFat}`);
-            console.log(`Total carbs from USDA: ${totalCarbs}`);
+            console.log(`Total calories from database: ${totalCalories}`);
+            console.log(`Total protein from database: ${totalProtein}`);
+            console.log(`Total fat from database: ${totalFat}`);
+            console.log(`Total carbs from database: ${totalCarbs}`);
             console.log(`USDA items found: ${usdaItemsFound}`);
+            console.log(`Fallback DB items found: ${fallbackItemsFound}`);
 
-            // Only use USDA data if we found nutritional info for at least one item
-            if (usdaItemsFound > 0) {
-              console.log('=== USING USDA DATA ===');
+            // Use database data if we found nutritional info for at least one item
+            if (usdaItemsFound > 0 || fallbackItemsFound > 0) {
+              console.log('=== USING DATABASE DATA ===');
               console.log(`Before update - AI calories: ${parsed.calories}`);
+              
+              // Apply calorie validation - flag if unreasonably high
+              if (totalCalories > 1500) {
+                console.warn(`⚠️ HIGH CALORIE WARNING: ${totalCalories} calories seems excessive for this meal`);
+              }
+              
               parsed.calories = Math.round(totalCalories);
               parsed.protein = Math.round(totalProtein);
               parsed.fat = Math.round(totalFat);
               parsed.carbs = Math.round(totalCarbs);
-              parsed.source = 'USDA';
+              
+              if (usdaItemsFound > 0) {
+                parsed.source = fallbackItemsFound > 0 ? 'USDA+FALLBACK' : 'USDA';
+              } else {
+                parsed.source = 'FALLBACK_DB';
+              }
               console.log(`After update - Final calories: ${parsed.calories}`);
             } else {
-              console.log('=== NO USDA DATA FOUND ===');
+              console.log('=== NO DATABASE DATA FOUND ===');
               console.log('Keeping AI estimates');
               parsed.source = 'AI_ESTIMATE';
+              
+              // Apply extra validation to AI estimates
+              if (parsed.calories > 1000) {
+                console.warn(`⚠️ AI ESTIMATE WARNING: ${parsed.calories} calories seems high, reducing to 800`);
+                parsed.calories = 800;
+                parsed.protein = Math.round(parsed.protein * 0.8);
+                parsed.fat = Math.round(parsed.fat * 0.8);
+                parsed.carbs = Math.round(parsed.carbs * 0.8);
+              }
             }
           } else {
             console.error('USDA lookup failed with status:', usdaResponse.status);
