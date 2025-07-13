@@ -323,6 +323,57 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
         setDailyLogs(prev => prev.map(log => 
           log.id === existingLog.id ? { ...log, completed } : log
         ));
+
+        // Handle workout table entries for exercise completion
+        if (itemType === 'exercise') {
+          if (completed) {
+            // Create workout entry when exercise is completed
+            const workoutForDay = getWorkoutForDay(selectedDate);
+            const exercise = workoutForDay?.exercises.find((ex: any) => ex.id === itemId);
+            
+            if (exercise) {
+              // Use modified details if available, otherwise use original exercise details
+              const exerciseDetails = existingLog.modified_details || {};
+              
+              // Parse rep range to get approximate reps (e.g., "8-12" -> 10)
+              const parseRepRange = (repRange: string): number | null => {
+                const match = repRange.match(/(\d+)-(\d+)/);
+                if (match) {
+                  return Math.round((parseInt(match[1]) + parseInt(match[2])) / 2);
+                }
+                return null;
+              };
+              
+              await supabase
+                .from('workouts')
+                .insert({
+                  user_id: user.id,
+                  date: selectedDate.toISOString(),
+                  exercise_name: exerciseDetails.name || exercise.name,
+                  exercise_type: exerciseDetails.type || 'strength',
+                  sets: exerciseDetails.sets || exercise.sets,
+                  reps: exerciseDetails.reps || parseRepRange(exercise.rep_range),
+                  weight: exerciseDetails.weight || null,
+                  duration_minutes: exerciseDetails.duration_minutes || null,
+                  distance: exerciseDetails.distance || null,
+                  calories_burned: exerciseDetails.calories_burned || null
+                });
+            }
+          } else {
+            // Remove workout entry when exercise is unchecked
+            await supabase
+              .from('workouts')
+              .delete()
+              .eq('user_id', user.id)
+              .eq('date', selectedDate.toISOString())
+              .eq('exercise_name', (() => {
+                const workoutForDay = getWorkoutForDay(selectedDate);
+                const exercise = workoutForDay?.exercises.find((ex: any) => ex.id === itemId);
+                const exerciseDetails = existingLog.modified_details || {};
+                return exerciseDetails?.name || exercise?.name;
+              })());
+          }
+        }
       } else {
         // Create new log
         const { data, error } = await supabase
@@ -340,6 +391,38 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
         if (error) throw error;
 
         setDailyLogs(prev => [...prev, data as DailyLog]);
+
+        // Handle workout table entries for exercise completion
+        if (itemType === 'exercise' && completed) {
+          const workoutForDay = getWorkoutForDay(selectedDate);
+          const exercise = workoutForDay?.exercises.find((ex: any) => ex.id === itemId);
+          
+          if (exercise) {
+            // Parse rep range to get approximate reps (e.g., "8-12" -> 10)
+            const parseRepRange = (repRange: string): number | null => {
+              const match = repRange.match(/(\d+)-(\d+)/);
+              if (match) {
+                return Math.round((parseInt(match[1]) + parseInt(match[2])) / 2);
+              }
+              return null;
+            };
+            
+            await supabase
+              .from('workouts')
+              .insert({
+                user_id: user.id,
+                date: selectedDate.toISOString(),
+                exercise_name: exercise.name,
+                exercise_type: 'strength',
+                sets: exercise.sets,
+                reps: parseRepRange(exercise.rep_range),
+                weight: null,
+                duration_minutes: null,
+                distance: null,
+                calories_burned: null
+              });
+          }
+        }
       }
     } catch (error) {
       console.error('Error toggling completion:', error);
