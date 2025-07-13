@@ -50,6 +50,33 @@ export type Database = {
         }
         Relationships: []
       }
+      exercise_database: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          exercise_name: string
+          id: string
+          met_value: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          exercise_name: string
+          id?: string
+          met_value: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          exercise_name?: string
+          id?: string
+          met_value?: number
+        }
+        Relationships: []
+      }
       exercises: {
         Row: {
           calories_burned: number | null

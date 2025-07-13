@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.food-lookup]
 verify_jwt = false
+
+[functions.exercise-lookup]
+verify_jwt = false

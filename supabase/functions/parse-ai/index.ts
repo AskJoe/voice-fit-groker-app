@@ -29,6 +29,7 @@ interface ParsedExercise {
   duration_minutes?: number;
   distance?: number;
   calories_burned?: number;
+  source?: string; // Track data source (MET or AI)
 }
 
 serve(async (req) => {
@@ -215,6 +216,45 @@ Return only valid JSON, no additional text:`;
             JSON.stringify({ success: false, error: 'Invalid exercise structure returned' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
+        }
+
+        // For exercises, lookup MET values and calculate accurate calories
+        console.log('Looking up MET data for exercise:', exercise.exercise_name);
+        try {
+          // Assume average weight of 70kg if not provided (we'll need user weight in the future)
+          const defaultWeight = 70; // kg
+          
+          const metResponse = await fetch('https://jlpkhkxnzwehjiemgpvg.supabase.co/functions/v1/exercise-lookup', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              exercise_name: exercise.exercise_name,
+              duration_minutes: exercise.duration_minutes,
+              weight_kg: defaultWeight
+            })
+          });
+
+          if (metResponse.ok) {
+            const metData = await metResponse.json();
+            console.log('MET lookup response:', metData);
+
+            if (metData.found && metData.exercise.calories_burned) {
+              console.log('Using MET-based calorie calculation');
+              parsed.calories_burned = metData.exercise.calories_burned;
+              parsed.source = 'MET_DATABASE';
+            } else {
+              console.log('No MET data found, keeping AI estimate');
+              parsed.source = 'AI_ESTIMATE';
+            }
+          } else {
+            console.error('MET lookup failed:', metResponse.status);
+            parsed.source = 'AI_ESTIMATE';
+          }
+        } catch (metError) {
+          console.error('Error calling MET lookup:', metError);
+          parsed.source = 'AI_ESTIMATE';
         }
       }
 

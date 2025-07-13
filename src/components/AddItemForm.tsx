@@ -160,6 +160,11 @@ export function AddItemForm({ type, userId, selectedDate, onItemAdded }: AddItem
               </>
             )}
             {exercise.calories_burned && <Badge variant="secondary">{exercise.calories_burned} cal</Badge>}
+            {exercise.source && (
+              <Badge variant={exercise.source === 'MET_DATABASE' ? 'default' : 'outline'} className="text-xs">
+                {exercise.source === 'MET_DATABASE' ? 'MET Data' : 'AI Estimate'}
+              </Badge>
+            )}
           </div>
         </div>
       );

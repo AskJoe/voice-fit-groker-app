@@ -18,6 +18,7 @@ export interface ParsedExercise {
   duration_minutes?: number;
   distance?: number;
   calories_burned?: number;
+  source?: string;
 }
 
 export interface ParseResult<T> {
