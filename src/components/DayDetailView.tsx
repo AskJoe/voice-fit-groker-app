@@ -16,6 +16,8 @@ import {
 import { Utensils, Dumbbell, Edit3, Save, X, Brain } from 'lucide-react';
 import { format } from 'date-fns';
 import { AddItemForm } from './AddItemForm';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface MealPlan {
   id: string;
@@ -77,6 +79,7 @@ export function DayDetailView({
 }: DayDetailViewProps) {
   const [editingItem, setEditingItem] = useState<{ id: string; type: 'meal' | 'exercise' } | null>(null);
   const [editData, setEditData] = useState<any>({});
+  const { toast } = useToast();
 
   const getLogForItem = (itemId: string, itemType: 'meal' | 'exercise') => {
     return dailyLogs.find(log => log.item_id === itemId && log.item_type === itemType);
@@ -99,6 +102,31 @@ export function DayDetailView({
   const handleEditCancel = () => {
     setEditingItem(null);
     setEditData({});
+  };
+
+  const handleDeleteFood = async (foodId: string) => {
+    try {
+      const { error } = await supabase
+        .from('food')
+        .delete()
+        .eq('id', foodId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Food deleted",
+        description: "Food item has been removed from your log.",
+      });
+
+      onRefresh(); // Refresh the data to update the UI
+    } catch (error) {
+      console.error('Error deleting food:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete food item. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getDailyNutritionTotals = () => {
@@ -381,6 +409,14 @@ export function DayDetailView({
                       {food.protein ? `${food.protein}g protein` : ''}
                     </div>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteFood(food.id)}
+                    className="h-8 w-8 p-0 text-white/60 hover:text-white hover:bg-red-500/20"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </div>
