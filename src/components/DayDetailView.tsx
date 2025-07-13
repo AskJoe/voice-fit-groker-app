@@ -349,9 +349,17 @@ export function DayDetailView({
           </CardHeader>
           <CardContent className="space-y-4">
             {workoutPlan.exercises.map((exercise, index) => {
-              // Generate a consistent UUID based on workout plan ID and exercise index
-              // This ensures the same exercise always gets the same ID
-              const exerciseId = `${workoutPlan.id}-${index}`;
+              // Generate a deterministic UUID based on workout plan ID and exercise index
+              // This ensures the same exercise always gets the same valid UUID
+              const namespace = workoutPlan.id.replace(/-/g, '');
+              const seed = namespace + index.toString().padStart(8, '0');
+              const exerciseId = [
+                seed.slice(0, 8),
+                seed.slice(8, 12),
+                seed.slice(12, 16),
+                seed.slice(16, 20),
+                seed.slice(20, 32).padEnd(12, '0')
+              ].join('-');
               const log = getLogForItem(exerciseId, 'exercise');
               const isCompleted = log?.completed || false;
               const displayDetails = log?.modified_details || exercise;
