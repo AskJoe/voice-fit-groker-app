@@ -14,7 +14,159 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cardio: {
+        Row: {
+          activity: string
+          created_at: string
+          date: string
+          distance: number | null
+          duration: number
+          id: string
+          pace: number | null
+          user_id: string
+        }
+        Insert: {
+          activity: string
+          created_at?: string
+          date?: string
+          distance?: number | null
+          duration: number
+          id?: string
+          pace?: number | null
+          user_id: string
+        }
+        Update: {
+          activity?: string
+          created_at?: string
+          date?: string
+          distance?: number | null
+          duration?: number
+          id?: string
+          pace?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      exercises: {
+        Row: {
+          created_at: string
+          date: string
+          exercise: string
+          id: string
+          reps: number
+          sets: number
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          exercise: string
+          id?: string
+          reps: number
+          sets: number
+          user_id: string
+          weight: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          exercise?: string
+          id?: string
+          reps?: number
+          sets?: number
+          user_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
+      food: {
+        Row: {
+          calories: number | null
+          created_at: string
+          date: string
+          id: string
+          meal: string
+          protein: number | null
+          user_id: string
+        }
+        Insert: {
+          calories?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          meal: string
+          protein?: number | null
+          user_id: string
+        }
+        Update: {
+          calories?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          meal?: string
+          protein?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      presets: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          name: string
+          type: string
+          updated_at: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          name: string
+          type: string
+          updated_at?: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      weight_logs: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          user_id: string
+          weight: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

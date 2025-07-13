@@ -2,24 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { 
   Dumbbell, 
   Heart, 
   Apple, 
   Scale, 
-  Mic, 
-  MicOff, 
   Target,
   TrendingUp,
   Trophy,
-  Activity
+  Activity,
+  LogOut
 } from 'lucide-react';
 import { VoiceInput } from './VoiceInput';
 import { ProgressChart } from './ProgressChart';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 interface WorkoutLog {
   id: string;
@@ -28,48 +27,152 @@ interface WorkoutLog {
   date: Date;
 }
 
-export function FitnessTracker() {
+interface FitnessTrackerProps {
+  user: User;
+  onSignOut: () => void;
+}
+
+export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
   const [activeTab, setActiveTab] = useState('log');
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
   const [currentWeight, setCurrentWeight] = useState(216);
   const [targetWeight] = useState(210);
   const { toast } = useToast();
 
-  // Load data from localStorage on mount
+  // Load data from Supabase on component mount
   useEffect(() => {
-    const savedLogs = localStorage.getItem('fitnessLogs');
-    const savedWeight = localStorage.getItem('currentWeight');
-    if (savedLogs) {
-      setLogs(JSON.parse(savedLogs));
-    }
-    if (savedWeight) {
-      setCurrentWeight(parseFloat(savedWeight));
-    }
-  }, []);
+    loadUserData();
+  }, [user]);
 
-  // Save data to localStorage whenever logs change
-  useEffect(() => {
-    localStorage.setItem('fitnessLogs', JSON.stringify(logs));
-  }, [logs]);
+  const loadUserData = async () => {
+    if (!user) return;
 
-  const addLog = (type: WorkoutLog['type'], data: any) => {
-    const newLog: WorkoutLog = {
-      id: Date.now().toString(),
-      type,
-      data,
-      date: new Date()
-    };
-    setLogs(prev => [newLog, ...prev]);
-    
-    if (type === 'weight') {
-      setCurrentWeight(data.weight);
-      localStorage.setItem('currentWeight', data.weight.toString());
+    try {
+      // Load weight logs
+      const { data: weightLogs } = await supabase
+        .from('weight_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(1);
+
+      if (weightLogs && weightLogs.length > 0) {
+        setCurrentWeight(weightLogs[0].weight);
+      }
+
+      // Load all logs for display
+      const [exercises, cardio, food, weights] = await Promise.all([
+        supabase.from('exercises').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+        supabase.from('cardio').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+        supabase.from('food').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+        supabase.from('weight_logs').select('*').eq('user_id', user.id).order('date', { ascending: false })
+      ]);
+
+      const allLogs: WorkoutLog[] = [
+        ...(exercises.data || []).map(e => ({ id: e.id, type: 'exercise' as const, data: e, date: new Date(e.date) })),
+        ...(cardio.data || []).map(c => ({ id: c.id, type: 'cardio' as const, data: c, date: new Date(c.date) })),
+        ...(food.data || []).map(f => ({ id: f.id, type: 'meal' as const, data: f, date: new Date(f.date) })),
+        ...(weights.data || []).map(w => ({ id: w.id, type: 'weight' as const, data: w, date: new Date(w.date) }))
+      ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+      setLogs(allLogs);
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load your data. Please try again.",
+        variant: "destructive",
+      });
     }
+  };
 
-    toast({
-      title: "Logged successfully!",
-      description: `${type.charAt(0).toUpperCase() + type.slice(1)} logged.`,
-    });
+  const addLog = async (type: WorkoutLog['type'], data: any) => {
+    if (!user) return;
+
+    try {
+      let result;
+      const baseData = { user_id: user.id, ...data };
+
+      switch (type) {
+        case 'exercise':
+          result = await supabase.from('exercises').insert(baseData).select().single();
+          break;
+        case 'cardio':
+          result = await supabase.from('cardio').insert(baseData).select().single();
+          break;
+        case 'meal':
+          result = await supabase.from('food').insert({ user_id: user.id, meal: data.meal, calories: data.calories, protein: data.protein }).select().single();
+          break;
+        case 'weight':
+          result = await supabase.from('weight_logs').insert({ user_id: user.id, weight: data.weight }).select().single();
+          setCurrentWeight(data.weight);
+          break;
+      }
+
+      if (result.error) throw result.error;
+
+      const newLog: WorkoutLog = {
+        id: result.data.id,
+        type,
+        data: result.data,
+        date: new Date(result.data.date)
+      };
+      
+      setLogs(prev => [newLog, ...prev]);
+      
+      toast({
+        title: "Success!",
+        description: `${type.charAt(0).toUpperCase() + type.slice(1)} logged successfully.`,
+      });
+
+      // Update presets for learning
+      await updatePresets(type, data);
+    } catch (error) {
+      console.error('Error saving log:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save your log. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updatePresets = async (type: WorkoutLog['type'], data: any) => {
+    if (!user || type === 'weight') return;
+
+    try {
+      const name = type === 'exercise' ? data.exercise : type === 'cardio' ? data.activity : data.meal;
+      const details = type === 'meal' ? { calories: data.calories, protein: data.protein } : data;
+
+      // Check if preset exists
+      const { data: existingPreset } = await supabase
+        .from('presets')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('type', type === 'meal' ? 'meal' : 'exercise')
+        .eq('name', name)
+        .single();
+
+      if (existingPreset) {
+        // Increment usage count
+        await supabase
+          .from('presets')
+          .update({ usage_count: existingPreset.usage_count + 1 })
+          .eq('id', existingPreset.id);
+      } else {
+        // Create new preset
+        await supabase
+          .from('presets')
+          .insert({
+            user_id: user.id,
+            type: type === 'meal' ? 'meal' : 'exercise',
+            name,
+            details
+          });
+      }
+    } catch (error) {
+      console.error('Error updating presets:', error);
+    }
   };
 
   const weightProgress = ((216 - currentWeight) / (216 - targetWeight)) * 100;
@@ -78,9 +181,20 @@ export function FitnessTracker() {
     <div className="min-h-screen bg-gradient-hero">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">FitTracker</h1>
-          <p className="text-white/80">Your voice-powered fitness companion</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">FitTracker</h1>
+            <p className="text-white/80">Welcome back, {user.email?.split('@')[0]}!</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSignOut}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            <LogOut className="w-4 h-4 mr-1" />
+            Sign Out
+          </Button>
         </div>
 
         {/* Quick Stats */}
