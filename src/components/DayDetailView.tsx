@@ -94,10 +94,10 @@ export function DayDetailView({
       const log = getLogForItem(meal.id, 'meal');
       const details = log?.modified_details || meal.details;
       return {
-        calories: totals.calories + details.calories,
-        protein: totals.protein + details.protein,
-        fat: totals.fat + details.fat,
-        carbs: totals.carbs + details.carbs
+        calories: totals.calories + (details.calories || 0),
+        protein: totals.protein + (details.protein || 0),
+        fat: totals.fat + (details.fat || 0),
+        carbs: totals.carbs + (details.carbs || 0)
       };
     }, { calories: 0, protein: 0, fat: 0, carbs: 0 });
   };
