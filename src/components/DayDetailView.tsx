@@ -53,6 +53,12 @@ interface DayDetailViewProps {
   workoutPlan?: WorkoutPlan;
   dailyLogs: DailyLog[];
   userId: string;
+  foodEntries: Array<{
+    id: string;
+    meal: string;
+    calories: number | null;
+    protein: number | null;
+  }>;
   onToggleComplete: (itemId: string, itemType: 'meal' | 'exercise', completed: boolean) => void;
   onUpdateDetails: (itemId: string, itemType: 'meal' | 'exercise', details: any) => void;
   onRefresh: () => void;
@@ -64,6 +70,7 @@ export function DayDetailView({
   workoutPlan, 
   dailyLogs, 
   userId,
+  foodEntries,
   onToggleComplete, 
   onUpdateDetails,
   onRefresh
@@ -121,7 +128,23 @@ export function DayDetailView({
       return totals;
     }, { calories: 0, protein: 0, fat: 0, carbs: 0 });
 
-    return { potential, actual };
+    // Add AI-added food entries to actual totals
+    const foodTotals = foodEntries.reduce((totals, food) => ({
+      calories: totals.calories + (food.calories || 0),
+      protein: totals.protein + (food.protein || 0),
+      fat: totals.fat + 0, // food table doesn't have fat/carbs yet
+      carbs: totals.carbs + 0
+    }), { calories: 0, protein: 0, fat: 0, carbs: 0 });
+
+    return { 
+      potential, 
+      actual: {
+        calories: actual.calories + foodTotals.calories,
+        protein: actual.protein + foodTotals.protein,
+        fat: actual.fat + foodTotals.fat,
+        carbs: actual.carbs + foodTotals.carbs
+      }
+    };
   };
 
   const nutritionTotals = getDailyNutritionTotals();
@@ -340,6 +363,16 @@ export function DayDetailView({
               </div>
             );
           })}
+          
+          {/* Add Food with AI Form */}
+          <div className="border border-white/20 rounded-lg p-4 bg-white/5 border-dashed">
+            <AddItemForm 
+              type="food"
+              userId={userId}
+              selectedDate={selectedDate}
+              onItemAdded={onRefresh}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -467,21 +500,6 @@ export function DayDetailView({
         </Card>
       )}
 
-      {/* AI-Powered Item Addition */}
-      <div className="space-y-4">
-        <AddItemForm 
-          type="food" 
-          userId={userId} 
-          selectedDate={selectedDate}
-          onItemAdded={onRefresh}
-        />
-        <AddItemForm 
-          type="exercise" 
-          userId={userId} 
-          selectedDate={selectedDate}
-          onItemAdded={onRefresh}
-        />
-      </div>
     </div>
   );
 }

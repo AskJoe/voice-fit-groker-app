@@ -469,6 +469,7 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
               workoutPlan={workoutForSelectedDay}
               dailyLogs={dailyLogs}
               userId={user.id}
+              foodEntries={[]} // We'll load this properly next
               onToggleComplete={handleToggleComplete}
               onUpdateDetails={handleUpdateDetails}
               onRefresh={loadDailyLogs}
