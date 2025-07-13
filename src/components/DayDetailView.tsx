@@ -549,6 +549,24 @@ export function DayDetailView({
         </Card>
       )}
 
+      {/* AI Exercise Input */}
+      <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Dumbbell className="h-5 w-5" />
+            Add Exercise with AI
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AddItemForm
+            type="exercise"
+            userId={userId}
+            selectedDate={selectedDate}
+            onItemAdded={onRefresh}
+          />
+        </CardContent>
+      </Card>
+
       {workoutPlan && workoutPlan.exercises.length === 0 && (
         <Card className="bg-white/10 backdrop-blur-sm border-white/20">
           <CardContent className="text-center py-8">
