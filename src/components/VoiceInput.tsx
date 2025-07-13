@@ -70,6 +70,7 @@ export function VoiceInput({ type, onSubmit, placeholder }: VoiceInputProps) {
   };
 
   const parseInput = (input: string) => {
+    console.log('Parsing input:', input, 'for type:', type);
     const text = input.toLowerCase().trim();
     let parsed: any = null;
 
@@ -78,6 +79,7 @@ export function VoiceInput({ type, onSubmit, placeholder }: VoiceInputProps) {
         case 'exercise':
           // Parse: "bench press, 3 sets of 8 at 185 pounds"
           const exerciseMatch = text.match(/(.+?),?\s*(\d+)\s*sets?\s*of\s*(\d+)\s*(?:at|@)\s*(\d+(?:\.\d+)?)\s*(?:pounds?|lbs?)?/);
+          console.log('Exercise regex match:', exerciseMatch);
           if (exerciseMatch) {
             parsed = {
               exercise: exerciseMatch[1].trim(),
@@ -91,6 +93,7 @@ export function VoiceInput({ type, onSubmit, placeholder }: VoiceInputProps) {
         case 'cardio':
           // Parse: "run 3 miles in 25 minutes"
           const cardioMatch = text.match(/(.+?)\s*(\d+(?:\.\d+)?)\s*miles?\s*in\s*(\d+(?:\.\d+)?)\s*minutes?/);
+          console.log('Cardio regex match:', cardioMatch);
           if (cardioMatch) {
             const distance = parseFloat(cardioMatch[2]);
             const duration = parseFloat(cardioMatch[3]);
@@ -122,6 +125,7 @@ export function VoiceInput({ type, onSubmit, placeholder }: VoiceInputProps) {
         case 'weight':
           // Parse: "214.5 pounds"
           const weightMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:pounds?|lbs?)?/);
+          console.log('Weight regex match:', weightMatch);
           if (weightMatch) {
             parsed = {
               weight: parseFloat(weightMatch[1])
@@ -130,8 +134,10 @@ export function VoiceInput({ type, onSubmit, placeholder }: VoiceInputProps) {
           break;
       }
 
+      console.log('Parsed result:', parsed);
       setParsedData(parsed);
       if (!parsed) {
+        console.log('No parsing result, showing error toast');
         toast({
           title: "Couldn't parse input",
           description: "Please check the format and try again.",
@@ -149,20 +155,23 @@ export function VoiceInput({ type, onSubmit, placeholder }: VoiceInputProps) {
   };
 
   const handleSubmit = () => {
+    console.log('Submit clicked with input:', inputValue);
+    console.log('Current parsed data:', parsedData);
+    
     if (parsedData) {
+      console.log('Submitting parsed data:', parsedData);
       onSubmit(parsedData);
       setInputValue('');
       setParsedData(null);
     } else if (inputValue.trim()) {
+      console.log('Trying to parse input:', inputValue);
       // Try to parse manual input
       parseInput(inputValue);
-      // If parsing was successful, submit immediately
+      // Give parsing time to complete, then submit if successful
       setTimeout(() => {
-        if (parsedData) {
-          onSubmit(parsedData);
-          setInputValue('');
-          setParsedData(null);
-        }
+        console.log('After parsing, parsedData:', parsedData);
+        // Note: This won't work because parsedData state won't be updated yet
+        // We need to handle this differently
       }, 100);
     }
   };

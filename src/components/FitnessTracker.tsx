@@ -87,29 +87,42 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
   };
 
   const addLog = async (type: WorkoutLog['type'], data: any) => {
-    if (!user) return;
+    console.log('addLog called with:', { type, data, user: user?.id });
+    if (!user) {
+      console.error('No user found for logging');
+      return;
+    }
 
     try {
       let result;
       const baseData = { user_id: user.id, ...data };
+      console.log('Attempting to save data:', baseData);
 
       switch (type) {
         case 'exercise':
+          console.log('Saving exercise to Supabase...');
           result = await supabase.from('exercises').insert(baseData).select().single();
           break;
         case 'cardio':
+          console.log('Saving cardio to Supabase...');
           result = await supabase.from('cardio').insert(baseData).select().single();
           break;
         case 'meal':
+          console.log('Saving meal to Supabase...');
           result = await supabase.from('food').insert({ user_id: user.id, meal: data.meal, calories: data.calories, protein: data.protein }).select().single();
           break;
         case 'weight':
+          console.log('Saving weight to Supabase...');
           result = await supabase.from('weight_logs').insert({ user_id: user.id, weight: data.weight }).select().single();
           setCurrentWeight(data.weight);
           break;
       }
 
-      if (result.error) throw result.error;
+      console.log('Supabase result:', result);
+      if (result.error) {
+        console.error('Supabase error:', result.error);
+        throw result.error;
+      }
 
       const newLog: WorkoutLog = {
         id: result.data.id,
@@ -119,6 +132,7 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
       };
       
       setLogs(prev => [newLog, ...prev]);
+      console.log('Log added successfully:', newLog);
       
       toast({
         title: "Success!",
@@ -131,7 +145,7 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
       console.error('Error saving log:', error);
       toast({
         title: "Error",
-        description: "Failed to save your log. Please try again.",
+        description: `Failed to save your log: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     }
