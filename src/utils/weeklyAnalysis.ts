@@ -63,7 +63,7 @@ export async function performWeeklyAnalysis(userId: string): Promise<WeeklyAnaly
 
     // Get exercise data
     const { data: exerciseData } = await supabase
-      .from('workouts')
+      .from('exercises')
       .select('exercise_name, exercise_type, weight, reps, sets, duration_minutes, calories_burned, date')
       .eq('user_id', userId)
       .gte('date', startDate.toISOString());

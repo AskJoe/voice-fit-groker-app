@@ -50,6 +50,51 @@ export type Database = {
         }
         Relationships: []
       }
+      exercises: {
+        Row: {
+          calories_burned: number | null
+          created_at: string
+          date: string
+          distance: number | null
+          duration_minutes: number | null
+          exercise_name: string
+          exercise_type: string
+          id: string
+          reps: number | null
+          sets: number | null
+          user_id: string
+          weight: number | null
+        }
+        Insert: {
+          calories_burned?: number | null
+          created_at?: string
+          date?: string
+          distance?: number | null
+          duration_minutes?: number | null
+          exercise_name: string
+          exercise_type: string
+          id?: string
+          reps?: number | null
+          sets?: number | null
+          user_id: string
+          weight?: number | null
+        }
+        Update: {
+          calories_burned?: number | null
+          created_at?: string
+          date?: string
+          distance?: number | null
+          duration_minutes?: number | null
+          exercise_name?: string
+          exercise_type?: string
+          id?: string
+          reps?: number | null
+          sets?: number | null
+          user_id?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
       food: {
         Row: {
           calories: number | null
@@ -188,51 +233,6 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      workouts: {
-        Row: {
-          calories_burned: number | null
-          created_at: string
-          date: string
-          distance: number | null
-          duration_minutes: number | null
-          exercise_name: string
-          exercise_type: string
-          id: string
-          reps: number | null
-          sets: number | null
-          user_id: string
-          weight: number | null
-        }
-        Insert: {
-          calories_burned?: number | null
-          created_at?: string
-          date?: string
-          distance?: number | null
-          duration_minutes?: number | null
-          exercise_name: string
-          exercise_type: string
-          id?: string
-          reps?: number | null
-          sets?: number | null
-          user_id: string
-          weight?: number | null
-        }
-        Update: {
-          calories_burned?: number | null
-          created_at?: string
-          date?: string
-          distance?: number | null
-          duration_minutes?: number | null
-          exercise_name?: string
-          exercise_type?: string
-          id?: string
-          reps?: number | null
-          sets?: number | null
-          user_id?: string
-          weight?: number | null
         }
         Relationships: []
       }

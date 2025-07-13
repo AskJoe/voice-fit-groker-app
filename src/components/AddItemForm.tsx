@@ -77,9 +77,9 @@ export function AddItemForm({ type, userId, selectedDate, onItemAdded }: AddItem
       } else {
         const exerciseData = preview as ParsedExercise;
         
-        // Add to workouts table
+        // Add to exercises table
         const { error } = await supabase
-          .from('workouts')
+          .from('exercises')
           .insert({
             user_id: userId,
             exercise_name: exerciseData.exercise_name,

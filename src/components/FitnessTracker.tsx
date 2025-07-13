@@ -56,7 +56,7 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
     calories: number | null;
     protein: number | null;
   }>>([]);
-  const [workoutEntries, setWorkoutEntries] = useState<Array<{
+  const [exerciseEntries, setExerciseEntries] = useState<Array<{
     id: string;
     exercise_name: string;
     exercise_type: 'cardio' | 'strength';
@@ -272,32 +272,32 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
     }
   };
 
-  const loadWorkoutEntries = async () => {
+  const loadExerciseEntries = async () => {
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      console.log('Loading workout entries for date:', dateStr);
+      console.log('Loading exercise entries for date:', dateStr);
       
-      const { data: workouts, error } = await supabase
-        .from('workouts')
+      const { data: exercises, error } = await supabase
+        .from('exercises')
         .select('*')
         .eq('user_id', user.id)
         .filter('date', 'gte', `${dateStr}T00:00:00`)
         .filter('date', 'lt', `${dateStr}T23:59:59`);
       
       if (error) {
-        console.error('Error loading workout entries:', error);
+        console.error('Error loading exercise entries:', error);
         return;
       }
       
-      console.log('Workout entries loaded:', workouts);
-      setWorkoutEntries((workouts as any[]) || []);
+      console.log('Exercise entries loaded:', exercises);
+      setExerciseEntries((exercises as any[]) || []);
     } catch (error) {
-      console.error('Error loading workout entries:', error);
+      console.error('Error loading exercise entries:', error);
     }
   };
 
   const refreshData = async () => {
-    await Promise.all([loadDailyLogs(), loadFoodEntries(), loadWorkoutEntries()]);
+    await Promise.all([loadDailyLogs(), loadFoodEntries(), loadExerciseEntries()]);
   };
 
   const getWorkoutForDay = (date: Date) => {
@@ -323,57 +323,6 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
         setDailyLogs(prev => prev.map(log => 
           log.id === existingLog.id ? { ...log, completed } : log
         ));
-
-        // Handle workout table entries for exercise completion
-        if (itemType === 'exercise') {
-          if (completed) {
-            // Create workout entry when exercise is completed
-            const workoutForDay = getWorkoutForDay(selectedDate);
-            const exercise = workoutForDay?.exercises.find((ex: any) => ex.id === itemId);
-            
-            if (exercise) {
-              // Use modified details if available, otherwise use original exercise details
-              const exerciseDetails = existingLog.modified_details || {};
-              
-              // Parse rep range to get approximate reps (e.g., "8-12" -> 10)
-              const parseRepRange = (repRange: string): number | null => {
-                const match = repRange.match(/(\d+)-(\d+)/);
-                if (match) {
-                  return Math.round((parseInt(match[1]) + parseInt(match[2])) / 2);
-                }
-                return null;
-              };
-              
-              await supabase
-                .from('workouts')
-                .insert({
-                  user_id: user.id,
-                  date: selectedDate.toISOString(),
-                  exercise_name: exerciseDetails.name || exercise.name,
-                  exercise_type: exerciseDetails.type || 'strength',
-                  sets: exerciseDetails.sets || exercise.sets,
-                  reps: exerciseDetails.reps || parseRepRange(exercise.rep_range),
-                  weight: exerciseDetails.weight || null,
-                  duration_minutes: exerciseDetails.duration_minutes || null,
-                  distance: exerciseDetails.distance || null,
-                  calories_burned: exerciseDetails.calories_burned || null
-                });
-            }
-          } else {
-            // Remove workout entry when exercise is unchecked
-            await supabase
-              .from('workouts')
-              .delete()
-              .eq('user_id', user.id)
-              .eq('date', selectedDate.toISOString())
-              .eq('exercise_name', (() => {
-                const workoutForDay = getWorkoutForDay(selectedDate);
-                const exercise = workoutForDay?.exercises.find((ex: any) => ex.id === itemId);
-                const exerciseDetails = existingLog.modified_details || {};
-                return exerciseDetails?.name || exercise?.name;
-              })());
-          }
-        }
       } else {
         // Create new log
         const { data, error } = await supabase
@@ -391,38 +340,6 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
         if (error) throw error;
 
         setDailyLogs(prev => [...prev, data as DailyLog]);
-
-        // Handle workout table entries for exercise completion
-        if (itemType === 'exercise' && completed) {
-          const workoutForDay = getWorkoutForDay(selectedDate);
-          const exercise = workoutForDay?.exercises.find((ex: any) => ex.id === itemId);
-          
-          if (exercise) {
-            // Parse rep range to get approximate reps (e.g., "8-12" -> 10)
-            const parseRepRange = (repRange: string): number | null => {
-              const match = repRange.match(/(\d+)-(\d+)/);
-              if (match) {
-                return Math.round((parseInt(match[1]) + parseInt(match[2])) / 2);
-              }
-              return null;
-            };
-            
-            await supabase
-              .from('workouts')
-              .insert({
-                user_id: user.id,
-                date: selectedDate.toISOString(),
-                exercise_name: exercise.name,
-                exercise_type: 'strength',
-                sets: exercise.sets,
-                reps: parseRepRange(exercise.rep_range),
-                weight: null,
-                duration_minutes: null,
-                distance: null,
-                calories_burned: null
-              });
-          }
-        }
       }
     } catch (error) {
       console.error('Error toggling completion:', error);
@@ -622,7 +539,7 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
               dailyLogs={dailyLogs}
               userId={user.id}
               foodEntries={foodEntries}
-              workoutEntries={workoutEntries}
+              exerciseEntries={exerciseEntries}
               onToggleComplete={handleToggleComplete}
               onUpdateDetails={handleUpdateDetails}
               onRefresh={refreshData}

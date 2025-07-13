@@ -26,7 +26,7 @@ interface NutritionData {
   carbs: number;
 }
 
-interface WorkoutData {
+interface ExerciseData {
   date: string;
   exercise_count: number;
   total_calories: number;
@@ -35,7 +35,7 @@ interface WorkoutData {
 export function ProgressDashboard({ user }: ProgressDashboardProps) {
   const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
   const [nutritionData, setNutritionData] = useState<NutritionData[]>([]);
-  const [workoutData, setWorkoutData] = useState<WorkoutData[]>([]);
+  const [exerciseData, setExerciseData] = useState<ExerciseData[]>([]);
   const [loading, setLoading] = useState(true);
   const [analysisResult, setAnalysisResult] = useState<WeeklyAnalysisResult | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
@@ -97,32 +97,32 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
       }
       setNutritionData(mockNutritionData);
 
-      // Load actual logged workouts from the workouts table
-      const workoutLogData: WorkoutData[] = [];
+      // Load actual logged exercises from the exercises table
+      const exerciseLogData: ExerciseData[] = [];
       for (let i = 6; i >= 0; i--) {
         const date = format(subDays(endDate, i), 'yyyy-MM-dd');
         
-        // Get all workouts logged for this date
-        const { data: workouts } = await supabase
-          .from('workouts')
+        // Get all exercises logged for this date
+        const { data: exercises } = await supabase
+          .from('exercises')
           .select('calories_burned, exercise_name, date')
           .eq('user_id', user.id)
           .gte('date', `${date}T00:00:00.000Z`)
           .lt('date', `${date}T23:59:59.999Z`);
 
-        console.log(`Workouts for ${date}:`, workouts);
+        console.log(`Exercises for ${date}:`, exercises);
         
-        const exercise_count = workouts?.length || 0;
-        const total_calories = workouts?.reduce((sum, workout) => sum + (workout.calories_burned || 0), 0) || 0;
+        const exercise_count = exercises?.length || 0;
+        const total_calories = exercises?.reduce((sum, exercise) => sum + (exercise.calories_burned || 0), 0) || 0;
 
-        workoutLogData.push({
+        exerciseLogData.push({
           date,
           exercise_count,
           total_calories
         });
       }
       
-      setWorkoutData(workoutLogData);
+      setExerciseData(exerciseLogData);
 
     } catch (error) {
       console.error('Error loading progress data:', error);
@@ -156,11 +156,11 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
   };
 
   const getAverageExercisesPerDay = () => {
-    if (workoutData.length === 0) return 0;
+    if (exerciseData.length === 0) return 0;
     
-    const totalExercises = workoutData.reduce((acc, day) => acc + day.exercise_count, 0);
+    const totalExercises = exerciseData.reduce((acc, day) => acc + day.exercise_count, 0);
     
-    return (totalExercises / workoutData.length).toFixed(1);
+    return (totalExercises / exerciseData.length).toFixed(1);
   };
 
   const weightTrend = getWeightTrend();
@@ -310,7 +310,7 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {workoutData.slice(-7).reverse().map((day, index) => (
+                {exerciseData.slice(-7).reverse().map((day, index) => (
                   <div key={index} className="flex justify-between items-center">
                     <span className="text-white/70">{format(parseISO(day.date), 'MMM d')}</span>
                     <div className="flex items-center gap-2">
