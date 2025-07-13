@@ -82,7 +82,7 @@ export function AddItemForm({ type, userId, selectedDate, onItemAdded }: AddItem
           .select('exercises')
           .eq('user_id', userId)
           .eq('day', dayOfWeek)
-          .single();
+          .maybeSingle();
 
         const currentExercises = existingPlan?.exercises as any[] || [];
         const updatedExercises = [...currentExercises, exerciseData];

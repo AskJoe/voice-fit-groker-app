@@ -266,7 +266,7 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
             completed
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
 
@@ -312,7 +312,7 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
             modified_details: details
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
 

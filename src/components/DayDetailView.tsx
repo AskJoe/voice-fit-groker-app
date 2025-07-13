@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Utensils, Dumbbell, Edit3, Save, X, Brain } from 'lucide-react';
 import { format } from 'date-fns';
-// import { AddItemForm } from './AddItemForm';
+import { AddItemForm } from './AddItemForm';
 
 interface MealPlan {
   id: string;
@@ -467,17 +467,20 @@ export function DayDetailView({
         </Card>
       )}
 
-      {/* AI-Powered Item Addition - Temporarily Disabled */}
+      {/* AI-Powered Item Addition */}
       <div className="space-y-4">
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-          <CardContent className="text-center py-8">
-            <Brain className="h-12 w-12 mx-auto text-white/50 mb-4" />
-            <h4 className="text-lg font-semibold text-white mb-2">AI Features Temporarily Unavailable</h4>
-            <p className="text-white/70">
-              The AI-powered food and exercise addition features are being fixed.
-            </p>
-          </CardContent>
-        </Card>
+        <AddItemForm 
+          type="food" 
+          userId={userId} 
+          selectedDate={selectedDate}
+          onItemAdded={onRefresh}
+        />
+        <AddItemForm 
+          type="exercise" 
+          userId={userId} 
+          selectedDate={selectedDate}
+          onItemAdded={onRefresh}
+        />
       </div>
     </div>
   );
