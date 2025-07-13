@@ -12,6 +12,11 @@ interface ParsedFood {
   fat: number;
   carbs: number;
   items: string[];
+  quantities?: Array<{
+    item: string;
+    amount: number;
+    unit: string;
+  }>;
   source?: string; // Track data source (USDA or AI)
 }
 
@@ -57,14 +62,16 @@ serve(async (req) => {
     let example: string;
 
     if (type === 'food') {
-      example = '{"calories": 300, "protein": 30, "fat": 10, "carbs": 25, "items": ["turkey sandwich"]}';
+      example = '{"calories": 300, "protein": 30, "fat": 10, "carbs": 25, "items": ["turkey sandwich"], "quantities": [{"item": "turkey sandwich", "amount": 1, "unit": "sandwich"}]}';
       prompt = `Parse this food description into valid JSON with this exact format: ${example}
 
 Rules:
-- Use reasonable estimates for missing nutritional info
-- Include all food items mentioned in the "items" array
+- CRITICAL: Parse quantities and scale nutritional values accordingly (e.g., "4 cups milk" = 4x the nutrition of 1 cup)
+- Extract serving sizes, amounts, and units (cups, tablespoons, ounces, grams, etc.)
+- Include all food items with their quantities in both "items" array and "quantities" array
+- Calculate total nutritional values for ALL items and their specified amounts
 - Ensure all numbers are integers
-- If multiple items, sum the nutritional values
+- If no quantity specified, assume 1 serving
 
 Input: "${inputText}"
 
@@ -145,13 +152,17 @@ Return only valid JSON, no additional text:`;
 
         // For food items, lookup USDA data and replace AI estimates
         console.log('Looking up USDA data for food items:', food.items);
+        console.log('Quantities parsed:', food.quantities);
         try {
           const usdaResponse = await fetch('https://jlpkhkxnzwehjiemgpvg.supabase.co/functions/v1/food-lookup', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ items: food.items })
+            body: JSON.stringify({ 
+              items: food.items,
+              quantities: food.quantities 
+            })
           });
 
           if (usdaResponse.ok) {
