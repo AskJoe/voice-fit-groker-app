@@ -73,9 +73,9 @@ const FALLBACK_NUTRITION: Record<string, NutrientInfo> = {
   'whole wheat bread': { calories: 247, protein: 13, fat: 4.2, carbs: 41 },
   'bagel': { calories: 257, protein: 10, fat: 1.5, carbs: 50 },
   'pasta': { calories: 131, protein: 5, fat: 1.1, carbs: 25 },
-  'tortilla': { calories: 218, protein: 6, fat: 3.3, carbs: 43 },
-  'corn tortilla': { calories: 218, protein: 6, fat: 3.3, carbs: 43 },
-  'tortillas': { calories: 218, protein: 6, fat: 3.3, carbs: 43 },
+  'tortilla': { calories: 160, protein: 4, fat: 2, carbs: 30 },
+  'corn tortilla': { calories: 160, protein: 4, fat: 2, carbs: 30 },
+  'tortillas': { calories: 160, protein: 4, fat: 2, carbs: 30 },
   
   // Nuts & Seeds
   'peanut butter': { calories: 588, protein: 25, fat: 50, carbs: 20 },
