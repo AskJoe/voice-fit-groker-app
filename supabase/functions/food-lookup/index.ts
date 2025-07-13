@@ -227,13 +227,14 @@ serve(async (req) => {
     }
 
     for (const item of items) {
-      console.log(`Searching USDA for: ${item}`);
+      console.log(`=== PROCESSING ITEM: ${item} ===`);
       
       // Find quantity info for this item
       const quantityInfo = quantities?.find(q => q.item === item);
       const multiplier = quantityInfo ? getServingMultiplier(quantityInfo.unit, quantityInfo.amount) : 1;
       
-      console.log(`Quantity info for ${item}:`, quantityInfo, 'Multiplier:', multiplier);
+      console.log(`Quantity info for ${item}:`, quantityInfo);
+      console.log(`Calculated multiplier: ${multiplier}`);
       
       // Search USDA FoodData Central API
       const searchUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(item)}&pageSize=1&api_key=DEMO_KEY`;
