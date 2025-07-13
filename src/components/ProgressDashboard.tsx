@@ -28,7 +28,7 @@ interface NutritionData {
 
 interface WorkoutData {
   date: string;
-  workout_count: number;
+  exercise_count: number;
   total_calories: number;
 }
 
@@ -110,12 +110,12 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
           .gte('date', `${date}T00:00:00.000Z`)
           .lt('date', `${date}T23:59:59.999Z`);
 
-        const workout_count = workouts?.length || 0;
+        const exercise_count = workouts?.length || 0;
         const total_calories = workouts?.reduce((sum, workout) => sum + (workout.calories_burned || 0), 0) || 0;
 
         workoutLogData.push({
           date,
-          workout_count,
+          exercise_count,
           total_calories
         });
       }
@@ -153,17 +153,17 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
     }), { calories: 0, protein: 0, fat: 0, carbs: 0 });
   };
 
-  const getAverageWorkoutsPerDay = () => {
+  const getAverageExercisesPerDay = () => {
     if (workoutData.length === 0) return 0;
     
-    const totalWorkouts = workoutData.reduce((acc, day) => acc + day.workout_count, 0);
+    const totalExercises = workoutData.reduce((acc, day) => acc + day.exercise_count, 0);
     
-    return (totalWorkouts / workoutData.length).toFixed(1);
+    return (totalExercises / workoutData.length).toFixed(1);
   };
 
   const weightTrend = getWeightTrend();
   const avgNutrition = getAverageNutrition();
-  const avgWorkouts = getAverageWorkoutsPerDay();
+  const avgExercises = getAverageExercisesPerDay();
   const latestWeight = weightLogs[weightLogs.length - 1];
 
   if (loading) {
@@ -229,11 +229,11 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm text-white/70 flex items-center gap-2">
               <Dumbbell className="w-4 h-4" />
-              Avg Workouts/Day
+              Avg Exercises/Day
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{avgWorkouts}</div>
+            <div className="text-2xl font-bold text-white">{avgExercises}</div>
             <div className="text-sm text-white/70">Last 7 days</div>
           </CardContent>
         </Card>
@@ -312,9 +312,9 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
                   <div key={index} className="flex justify-between items-center">
                     <span className="text-white/70">{format(parseISO(day.date), 'MMM d')}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-white">{day.workout_count} workout{day.workout_count !== 1 ? 's' : ''}</span>
+                      <span className="text-white">{day.exercise_count} exercise{day.exercise_count !== 1 ? 's' : ''}</span>
                       <Badge 
-                        variant={day.workout_count > 0 ? "default" : "secondary"}
+                        variant={day.exercise_count > 0 ? "default" : "secondary"}
                         className="text-xs"
                       >
                         {day.total_calories} cal
