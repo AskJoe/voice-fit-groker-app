@@ -63,16 +63,23 @@ serve(async (req) => {
     let example: string;
 
     if (type === 'food') {
-      example = '{"calories": 300, "protein": 30, "fat": 10, "carbs": 25, "items": ["turkey sandwich"], "quantities": [{"item": "turkey sandwich", "amount": 1, "unit": "sandwich"}]}';
+      example = '{"calories": 300, "protein": 30, "fat": 10, "carbs": 25, "items": ["grilled chicken breast", "brown rice"], "quantities": [{"item": "grilled chicken breast", "amount": 150, "unit": "grams"}, {"item": "brown rice", "amount": 100, "unit": "grams"}]}';
       prompt = `Parse this food description into valid JSON with this exact format: ${example}
 
-Rules:
-- CRITICAL: Parse quantities and scale nutritional values accordingly (e.g., "4 cups milk" = 4x the nutrition of 1 cup)
-- Extract serving sizes, amounts, and units (cups, tablespoons, ounces, grams, etc.)
-- Include all food items with their quantities in both "items" array and "quantities" array
-- Calculate total nutritional values for ALL items and their specified amounts
-- Ensure all numbers are integers
-- If no quantity specified, assume 1 serving
+CRITICAL RULES for quantity parsing:
+- Extract ALL specific amounts and units mentioned (e.g., "3 tortillas" = amount: 3, unit: "tortillas")
+- For weight measurements, use exact numbers (e.g., "106g chicken" = amount: 106, unit: "grams") 
+- For volume measurements, convert to standard units (e.g., "1 cup" = amount: 1, unit: "cup")
+- Each item in "items" array must have corresponding entry in "quantities" array
+- If no specific quantity mentioned, estimate reasonable serving size in grams
+- Use precise units: "grams", "cups", "tablespoons", "ounces", "pieces", "slices", etc.
+- The quantities will be used to calculate accurate nutrition via USDA database lookup
+
+Examples:
+- "3 corn tortillas" → {"item": "corn tortillas", "amount": 3, "unit": "tortillas"}
+- "106 grams chicken" → {"item": "chicken", "amount": 106, "unit": "grams"}  
+- "30g cheese" → {"item": "cheese", "amount": 30, "unit": "grams"}
+- "1 cup rice" → {"item": "rice", "amount": 1, "unit": "cup"}
 
 Input: "${inputText}"
 
