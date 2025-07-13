@@ -43,11 +43,12 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
   useEffect(() => {
     if (user) {
       loadProgressData();
-      loadWeeklyAnalysis();
     }
   }, [user]);
 
   const loadWeeklyAnalysis = async () => {
+    if (analysisLoading) return; // Prevent multiple calls
+    
     setAnalysisLoading(true);
     try {
       const result = await performWeeklyAnalysis(user.id);
@@ -108,7 +109,7 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
           .select('id, exercises')
           .eq('user_id', user.id)
           .eq('day', dayOfWeek)
-          .single();
+          .maybeSingle();
 
         let workouts_completed = 0;
         let total_workouts = 0;
@@ -138,7 +139,7 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
               .eq('date', date)
               .eq('item_id', exerciseId)
               .eq('item_type', 'exercise')
-              .single();
+              .maybeSingle();
 
             if (log?.completed) {
               workouts_completed++;
