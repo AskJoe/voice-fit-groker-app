@@ -70,12 +70,12 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
       setLoading(true);
       
       // Check if meal plans exist
-      const { data: existingMeals } = await supabase
+      const { data: existingMeals, count } = await supabase
         .from('meal_plans')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('user_id', user.id);
       
-      if (!existingMeals || existingMeals.length === 0) {
+      if (!existingMeals || count === 0) {
         // Insert default meals
         const defaultMeals = [
           { 
