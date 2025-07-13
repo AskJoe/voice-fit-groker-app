@@ -466,6 +466,25 @@ export function DayDetailView({
           </CardContent>
         </Card>
       )}
+
+      {/* AI-Powered Item Addition */}
+      <div className="space-y-4">
+        <h4 className="text-lg font-semibold text-white mb-3">Add Items with AI</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <AddItemForm 
+            type="food"
+            userId={userId}
+            selectedDate={selectedDate}
+            onItemAdded={onRefresh}
+          />
+          <AddItemForm 
+            type="exercise"
+            userId={userId}
+            selectedDate={selectedDate}
+            onItemAdded={onRefresh}
+          />
+        </div>
+      </div>
     </div>
   );
 }
