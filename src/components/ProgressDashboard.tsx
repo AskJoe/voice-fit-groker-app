@@ -97,27 +97,39 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
       }
       setNutritionData(mockNutritionData);
 
-      // Load actual logged exercises from the exercises table
+      // Load exercise data (both completed workout plan exercises and AI-added exercises)
       const exerciseLogData: ExerciseData[] = [];
       for (let i = 6; i >= 0; i--) {
         const date = format(subDays(endDate, i), 'yyyy-MM-dd');
         
-        // Get all exercises logged for this date
-        const { data: exercises } = await supabase
+        // Get completed workout plan exercises from daily_logs
+        const { data: completedExercises } = await supabase
+          .from('daily_logs')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('date', date)
+          .eq('item_type', 'exercise')
+          .eq('completed', true);
+
+        // Get AI-added exercises from exercises table
+        const { data: aiExercises } = await supabase
           .from('exercises')
           .select('calories_burned, exercise_name, date')
           .eq('user_id', user.id)
           .gte('date', `${date}T00:00:00.000Z`)
           .lt('date', `${date}T23:59:59.999Z`);
 
-        console.log(`Exercises for ${date}:`, exercises);
+        console.log(`Completed workout plan exercises for ${date}:`, completedExercises);
+        console.log(`AI-added exercises for ${date}:`, aiExercises);
         
-        const exercise_count = exercises?.length || 0;
-        const total_calories = exercises?.reduce((sum, exercise) => sum + (exercise.calories_burned || 0), 0) || 0;
+        const completedCount = completedExercises?.length || 0;
+        const aiCount = aiExercises?.length || 0;
+        const total_exercise_count = completedCount + aiCount;
+        const total_calories = aiExercises?.reduce((sum, exercise) => sum + (exercise.calories_burned || 0), 0) || 0;
 
         exerciseLogData.push({
           date,
-          exercise_count,
+          exercise_count: total_exercise_count,
           total_calories
         });
       }
