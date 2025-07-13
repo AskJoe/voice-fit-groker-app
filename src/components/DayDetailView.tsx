@@ -472,7 +472,7 @@ export function DayDetailView({
       </Card>
 
       {/* Workout Section */}
-      {workoutPlan && workoutPlan.exercises.length > 0 && (
+      {workoutPlan && workoutPlan.exercises && workoutPlan.exercises.length > 0 && (
         <Card className="bg-white/10 backdrop-blur-sm border-white/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
@@ -481,7 +481,7 @@ export function DayDetailView({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {workoutPlan.exercises.map((exercise, index) => {
+            {(workoutPlan.exercises || []).map((exercise, index) => {
               // Generate a deterministic UUID v5 based on workout plan ID and exercise index
               // This ensures consistent UUIDs for the same exercise
               const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'; // Standard namespace UUID
@@ -667,7 +667,7 @@ export function DayDetailView({
         </CardContent>
       </Card>
 
-      {workoutPlan && workoutPlan.exercises.length === 0 && (
+      {workoutPlan && (!workoutPlan.exercises || workoutPlan.exercises.length === 0) && (
         <Card className="bg-white/10 backdrop-blur-sm border-white/20">
           <CardContent className="text-center py-8">
             <Dumbbell className="h-12 w-12 mx-auto text-white/50 mb-4" />
