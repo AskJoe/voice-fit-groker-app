@@ -28,8 +28,8 @@ interface NutritionData {
 
 interface WorkoutData {
   date: string;
-  workouts_completed: number;
-  total_workouts: number;
+  workout_count: number;
+  total_calories: number;
 }
 
 export function ProgressDashboard({ user }: ProgressDashboardProps) {
@@ -97,64 +97,30 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
       }
       setNutritionData(mockNutritionData);
 
-      // Load actual workout completion data from daily_logs
-      const workoutCompletionData: WorkoutData[] = [];
+      // Load actual logged workouts from the workouts table
+      const workoutLogData: WorkoutData[] = [];
       for (let i = 6; i >= 0; i--) {
         const date = format(subDays(endDate, i), 'yyyy-MM-dd');
         
-        // Get workout plan for this day
-        const dayOfWeek = format(subDays(endDate, i), 'EEEE');
-        const { data: workoutPlan } = await supabase
-          .from('workout_plans')
-          .select('id, exercises')
+        // Get all workouts logged for this date
+        const { data: workouts } = await supabase
+          .from('workouts')
+          .select('calories_burned')
           .eq('user_id', user.id)
-          .eq('day', dayOfWeek)
-          .maybeSingle();
+          .gte('date', `${date}T00:00:00.000Z`)
+          .lt('date', `${date}T23:59:59.999Z`);
 
-        let workouts_completed = 0;
-        let total_workouts = 0;
+        const workout_count = workouts?.length || 0;
+        const total_calories = workouts?.reduce((sum, workout) => sum + (workout.calories_burned || 0), 0) || 0;
 
-        if (workoutPlan && workoutPlan.exercises) {
-          const exercises = workoutPlan.exercises as any[];
-          total_workouts = exercises.length;
-
-          // Check completion for each exercise
-          for (let index = 0; index < exercises.length; index++) {
-            const exercise = exercises[index];
-            // Use the same ID generation logic as in DayDetailView
-            const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
-            const name = `${workoutPlan.id}-${exercise.name}-${index}`;
-            
-            let hash = 0;
-            for (let j = 0; j < name.length; j++) {
-              hash = ((hash << 5) - hash + name.charCodeAt(j)) & 0xffffffff;
-            }
-            const hex = Math.abs(hash).toString(16).padStart(8, '0');
-            const exerciseId = `${hex.slice(0,8)}-${hex.slice(0,4)}-4${hex.slice(1,4)}-8${hex.slice(4,7)}-${hex}${hex.slice(0,4)}`;
-
-            const { data: log } = await supabase
-              .from('daily_logs')
-              .select('completed')
-              .eq('user_id', user.id)
-              .eq('date', date)
-              .eq('item_id', exerciseId)
-              .eq('item_type', 'exercise')
-              .maybeSingle();
-
-            if (log?.completed) {
-              workouts_completed++;
-            }
-          }
-        }
-
-        workoutCompletionData.push({
+        workoutLogData.push({
           date,
-          workouts_completed,
-          total_workouts
+          workout_count,
+          total_calories
         });
       }
       
-      setWorkoutData(workoutCompletionData);
+      setWorkoutData(workoutLogData);
 
     } catch (error) {
       console.error('Error loading progress data:', error);
@@ -187,18 +153,17 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
     }), { calories: 0, protein: 0, fat: 0, carbs: 0 });
   };
 
-  const getWorkoutCompletionRate = () => {
+  const getAverageWorkoutsPerDay = () => {
     if (workoutData.length === 0) return 0;
     
-    const totalCompleted = workoutData.reduce((acc, day) => acc + day.workouts_completed, 0);
-    const totalWorkouts = workoutData.reduce((acc, day) => acc + day.total_workouts, 0);
+    const totalWorkouts = workoutData.reduce((acc, day) => acc + day.workout_count, 0);
     
-    return Math.round((totalCompleted / totalWorkouts) * 100);
+    return (totalWorkouts / workoutData.length).toFixed(1);
   };
 
   const weightTrend = getWeightTrend();
   const avgNutrition = getAverageNutrition();
-  const workoutRate = getWorkoutCompletionRate();
+  const avgWorkouts = getAverageWorkoutsPerDay();
   const latestWeight = weightLogs[weightLogs.length - 1];
 
   if (loading) {
@@ -264,12 +229,12 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm text-white/70 flex items-center gap-2">
               <Dumbbell className="w-4 h-4" />
-              Workout Rate
+              Avg Workouts/Day
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{workoutRate}%</div>
-            <div className="text-sm text-white/70">Completion rate</div>
+            <div className="text-2xl font-bold text-white">{avgWorkouts}</div>
+            <div className="text-sm text-white/70">Last 7 days</div>
           </CardContent>
         </Card>
       </div>
@@ -339,7 +304,7 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
         <TabsContent value="workouts" className="space-y-4">
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
             <CardHeader>
-              <CardTitle className="text-white">Workout Completion</CardTitle>
+              <CardTitle className="text-white">Daily Workout Log</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -347,12 +312,12 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
                   <div key={index} className="flex justify-between items-center">
                     <span className="text-white/70">{format(parseISO(day.date), 'MMM d')}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-white">{day.workouts_completed}/{day.total_workouts}</span>
+                      <span className="text-white">{day.workout_count} workout{day.workout_count !== 1 ? 's' : ''}</span>
                       <Badge 
-                        variant={day.workouts_completed === day.total_workouts ? "default" : "secondary"}
+                        variant={day.workout_count > 0 ? "default" : "secondary"}
                         className="text-xs"
                       >
-                        {Math.round((day.workouts_completed / day.total_workouts) * 100)}%
+                        {day.total_calories} cal
                       </Badge>
                     </div>
                   </div>
