@@ -86,8 +86,14 @@ export async function performWeeklyAnalysis(userId: string): Promise<WeeklyAnaly
       ? currentWeight - startingWeight 
       : null;
 
-    const totalCalories = foodData?.reduce((sum, meal) => sum + (meal.calories || 0), 0) || 0;
-    const totalProtein = foodData?.reduce((sum, meal) => sum + (meal.protein || 0), 0) || 0;
+    const totalCalories = foodData?.reduce((sum, meal) => {
+      const calories = typeof meal.calories === 'number' ? meal.calories : 0;
+      return sum + calories;
+    }, 0) || 0;
+    const totalProtein = foodData?.reduce((sum, meal) => {
+      const protein = typeof meal.protein === 'number' ? meal.protein : 0;
+      return sum + protein;
+    }, 0) || 0;
     const avgDailyCalories = totalCalories / 28;
     const avgDailyProtein = totalProtein / 28;
 

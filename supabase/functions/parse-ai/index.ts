@@ -159,8 +159,11 @@ Return only valid JSON, no additional text:`;
         }
 
         // For food items, lookup USDA data and replace AI estimates
-        console.log('Looking up USDA data for food items:', food.items);
-        console.log('Quantities parsed:', food.quantities);
+        console.log('=== FOOD LOOKUP PROCESS START ===');
+        console.log('AI parsed food items:', food.items);
+        console.log('AI parsed quantities:', food.quantities);
+        console.log('AI estimated calories before USDA lookup:', food.calories);
+        
         try {
           const usdaResponse = await fetch('https://jlpkhkxnzwehjiemgpvg.supabase.co/functions/v1/food-lookup', {
             method: 'POST',
@@ -175,7 +178,8 @@ Return only valid JSON, no additional text:`;
 
           if (usdaResponse.ok) {
             const usdaData = await usdaResponse.json();
-            console.log('USDA lookup response:', usdaData);
+            console.log('=== USDA LOOKUP RESPONSE ===');
+            console.log('Full USDA response:', JSON.stringify(usdaData, null, 2));
 
             // Calculate totals from USDA data
             let totalCalories = 0;
@@ -184,36 +188,62 @@ Return only valid JSON, no additional text:`;
             let totalCarbs = 0;
             let usdaItemsFound = 0;
 
+            console.log('=== PROCESSING USDA RESULTS ===');
             for (const result of usdaData.results) {
+              console.log(`Processing result for item: ${result.item}`);
+              console.log(`Result source: ${result.source}`);
+              console.log(`Result nutrients:`, result.nutrients);
+              
               if (result.nutrients && result.source === 'USDA') {
-                totalCalories += result.nutrients.calories || 0;
-                totalProtein += result.nutrients.protein || 0;
-                totalFat += result.nutrients.fat || 0;
-                totalCarbs += result.nutrients.carbs || 0;
+                const itemCalories = result.nutrients.calories || 0;
+                const itemProtein = result.nutrients.protein || 0;
+                const itemFat = result.nutrients.fat || 0;
+                const itemCarbs = result.nutrients.carbs || 0;
+                
+                console.log(`Adding to totals - Calories: ${itemCalories}, Protein: ${itemProtein}, Fat: ${itemFat}, Carbs: ${itemCarbs}`);
+                
+                totalCalories += itemCalories;
+                totalProtein += itemProtein;
+                totalFat += itemFat;
+                totalCarbs += itemCarbs;
                 usdaItemsFound++;
               }
             }
 
+            console.log('=== FINAL TOTALS ===');
+            console.log(`Total calories from USDA: ${totalCalories}`);
+            console.log(`Total protein from USDA: ${totalProtein}`);
+            console.log(`Total fat from USDA: ${totalFat}`);
+            console.log(`Total carbs from USDA: ${totalCarbs}`);
+            console.log(`USDA items found: ${usdaItemsFound}`);
+
             // Only use USDA data if we found nutritional info for at least one item
             if (usdaItemsFound > 0) {
-              console.log('Using USDA nutritional data');
-              parsed.calories = totalCalories;
-              parsed.protein = totalProtein;
-              parsed.fat = totalFat;
-              parsed.carbs = totalCarbs;
+              console.log('=== USING USDA DATA ===');
+              console.log(`Before update - AI calories: ${parsed.calories}`);
+              parsed.calories = Math.round(totalCalories);
+              parsed.protein = Math.round(totalProtein);
+              parsed.fat = Math.round(totalFat);
+              parsed.carbs = Math.round(totalCarbs);
               parsed.source = 'USDA';
+              console.log(`After update - Final calories: ${parsed.calories}`);
             } else {
-              console.log('No USDA data found, keeping AI estimates');
+              console.log('=== NO USDA DATA FOUND ===');
+              console.log('Keeping AI estimates');
               parsed.source = 'AI_ESTIMATE';
             }
           } else {
-            console.error('USDA lookup failed:', usdaResponse.status);
+            console.error('USDA lookup failed with status:', usdaResponse.status);
+            const errorText = await usdaResponse.text();
+            console.error('USDA error response:', errorText);
             parsed.source = 'AI_ESTIMATE';
           }
         } catch (usdaError) {
           console.error('Error calling USDA lookup:', usdaError);
           parsed.source = 'AI_ESTIMATE';
         }
+        
+        console.log('=== FOOD LOOKUP PROCESS END ===');
       } else {
         const exercise = parsed as ParsedExercise;
         if (typeof exercise.exercise_name !== 'string' || 
