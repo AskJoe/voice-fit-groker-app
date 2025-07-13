@@ -156,17 +156,22 @@ export function VoiceInput({ type, onSubmit, placeholder }: VoiceInputProps) {
     } else if (inputValue.trim()) {
       // Try to parse manual input
       parseInput(inputValue);
+      // If parsing was successful, submit immediately
+      setTimeout(() => {
+        if (parsedData) {
+          onSubmit(parsedData);
+          setInputValue('');
+          setParsedData(null);
+        }
+      }, 100);
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
-    if (value.trim()) {
-      parseInput(value);
-    } else {
-      setParsedData(null);
-    }
+    // Clear previous parsed data but don't parse until user is done typing
+    setParsedData(null);
   };
 
   return (
@@ -194,7 +199,7 @@ export function VoiceInput({ type, onSubmit, placeholder }: VoiceInputProps) {
         
         <Button
           onClick={handleSubmit}
-          disabled={!parsedData}
+          disabled={!inputValue.trim()}
           variant={parsedData ? "gradient" : "outline"}
           size="icon"
           className="shrink-0"
