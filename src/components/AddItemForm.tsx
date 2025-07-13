@@ -76,33 +76,28 @@ export function AddItemForm({ type, userId, selectedDate, onItemAdded }: AddItem
         });
       } else {
         const exerciseData = preview as ParsedExercise;
-        const dayOfWeek = format(selectedDate, 'EEEE');
         
-        // Get existing workout plan for the day
-        const { data: existingPlan } = await supabase
-          .from('workout_plans')
-          .select('exercises')
-          .eq('user_id', userId)
-          .eq('day', dayOfWeek)
-          .maybeSingle();
-
-        const currentExercises = existingPlan?.exercises as any[] || [];
-        const updatedExercises = [...currentExercises, exerciseData];
-
-        // Upsert workout plan
+        // Add to workouts table
         const { error } = await supabase
-          .from('workout_plans')
-          .upsert({
+          .from('workouts')
+          .insert({
             user_id: userId,
-            day: dayOfWeek,
-            exercises: updatedExercises as any,
+            exercise_name: exerciseData.exercise_name,
+            exercise_type: exerciseData.exercise_type,
+            sets: exerciseData.sets,
+            reps: exerciseData.reps,
+            weight: exerciseData.weight,
+            duration_minutes: exerciseData.duration_minutes,
+            distance: exerciseData.distance,
+            calories_burned: exerciseData.calories_burned,
+            date: selectedDate.toISOString(),
           });
 
         if (error) throw error;
 
         toast({
           title: 'Exercise added successfully',
-          description: `Added ${exerciseData.name} to your ${dayOfWeek} workout`,
+          description: `Added ${exerciseData.exercise_name} to your workout log`,
         });
       }
 
@@ -143,10 +138,23 @@ export function AddItemForm({ type, userId, selectedDate, onItemAdded }: AddItem
       const exercise = preview as ParsedExercise;
       return (
         <div className="space-y-2">
-          <div className="font-medium capitalize">{exercise.name}</div>
-          <div className="flex gap-2">
-            <Badge variant="secondary">{exercise.sets} sets</Badge>
-            <Badge variant="secondary">{exercise.rep_range} reps</Badge>
+          <div className="font-medium capitalize">{exercise.exercise_name}</div>
+          <div className="flex gap-2 flex-wrap">
+            <Badge variant="outline" className="text-xs">{exercise.exercise_type}</Badge>
+            {exercise.exercise_type === 'strength' && (
+              <>
+                {exercise.sets && <Badge variant="secondary">{exercise.sets} sets</Badge>}
+                {exercise.reps && <Badge variant="secondary">{exercise.reps} reps</Badge>}
+                {exercise.weight && <Badge variant="secondary">{exercise.weight} lbs</Badge>}
+              </>
+            )}
+            {exercise.exercise_type === 'cardio' && (
+              <>
+                {exercise.duration_minutes && <Badge variant="secondary">{exercise.duration_minutes} min</Badge>}
+                {exercise.distance && <Badge variant="secondary">{exercise.distance} mi</Badge>}
+              </>
+            )}
+            {exercise.calories_burned && <Badge variant="secondary">{exercise.calories_burned} cal</Badge>}
           </div>
         </div>
       );

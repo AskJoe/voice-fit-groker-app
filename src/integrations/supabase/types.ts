@@ -14,39 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      cardio: {
-        Row: {
-          activity: string
-          created_at: string
-          date: string
-          distance: number | null
-          duration: number
-          id: string
-          pace: number | null
-          user_id: string
-        }
-        Insert: {
-          activity: string
-          created_at?: string
-          date?: string
-          distance?: number | null
-          duration: number
-          id?: string
-          pace?: number | null
-          user_id: string
-        }
-        Update: {
-          activity?: string
-          created_at?: string
-          date?: string
-          distance?: number | null
-          duration?: number
-          id?: string
-          pace?: number | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       daily_logs: {
         Row: {
           completed: boolean
@@ -80,39 +47,6 @@ export type Database = {
           modified_details?: Json | null
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      exercises: {
-        Row: {
-          created_at: string
-          date: string
-          exercise: string
-          id: string
-          reps: number
-          sets: number
-          user_id: string
-          weight: number
-        }
-        Insert: {
-          created_at?: string
-          date?: string
-          exercise: string
-          id?: string
-          reps: number
-          sets: number
-          user_id: string
-          weight: number
-        }
-        Update: {
-          created_at?: string
-          date?: string
-          exercise?: string
-          id?: string
-          reps?: number
-          sets?: number
-          user_id?: string
-          weight?: number
         }
         Relationships: []
       }
@@ -254,6 +188,51 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      workouts: {
+        Row: {
+          calories_burned: number | null
+          created_at: string
+          date: string
+          distance: number | null
+          duration_minutes: number | null
+          exercise_name: string
+          exercise_type: string
+          id: string
+          reps: number | null
+          sets: number | null
+          user_id: string
+          weight: number | null
+        }
+        Insert: {
+          calories_burned?: number | null
+          created_at?: string
+          date?: string
+          distance?: number | null
+          duration_minutes?: number | null
+          exercise_name: string
+          exercise_type: string
+          id?: string
+          reps?: number | null
+          sets?: number | null
+          user_id: string
+          weight?: number | null
+        }
+        Update: {
+          calories_burned?: number | null
+          created_at?: string
+          date?: string
+          distance?: number | null
+          duration_minutes?: number | null
+          exercise_name?: string
+          exercise_type?: string
+          id?: string
+          reps?: number | null
+          sets?: number | null
+          user_id?: string
+          weight?: number | null
         }
         Relationships: []
       }

@@ -63,8 +63,8 @@ export async function performWeeklyAnalysis(userId: string): Promise<WeeklyAnaly
 
     // Get exercise data
     const { data: exerciseData } = await supabase
-      .from('exercises')
-      .select('exercise, weight, reps, sets, date')
+      .from('workouts')
+      .select('exercise_name, exercise_type, weight, reps, sets, duration_minutes, calories_burned, date')
       .eq('user_id', userId)
       .gte('date', startDate.toISOString());
 
@@ -92,7 +92,13 @@ export async function performWeeklyAnalysis(userId: string): Promise<WeeklyAnaly
     const avgDailyProtein = totalProtein / 28;
 
     const totalExercises = exerciseData?.length || 0;
-    const strengthMetric = exerciseData?.reduce((sum, ex) => sum + (ex.weight * ex.sets * ex.reps), 0) || 0;
+    const strengthMetric = exerciseData?.reduce((sum, ex) => {
+      if (ex.exercise_type === 'strength' && ex.weight && ex.sets && ex.reps) {
+        return sum + (ex.weight * ex.sets * ex.reps);
+      }
+      return sum;
+    }, 0) || 0;
+    const totalCaloriesBurned = exerciseData?.reduce((sum, ex) => sum + (ex.calories_burned || 0), 0) || 0;
 
     const mealCompletions = completionData?.filter(log => log.item_type === 'meal' && log.completed).length || 0;
     const workoutCompletions = completionData?.filter(log => log.item_type === 'exercise' && log.completed).length || 0;
@@ -115,6 +121,7 @@ export async function performWeeklyAnalysis(userId: string): Promise<WeeklyAnaly
       fitness: {
         totalExercises,
         strengthMetric: Math.round(strengthMetric),
+        totalCaloriesBurned: Math.round(totalCaloriesBurned),
         workoutCompletions
       },
       adherence: {

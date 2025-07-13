@@ -15,9 +15,14 @@ interface ParsedFood {
 }
 
 interface ParsedExercise {
-  name: string;
-  sets: number;
-  rep_range: string;
+  exercise_name: string;
+  exercise_type: 'cardio' | 'strength';
+  sets?: number;
+  reps?: number;
+  weight?: number;
+  duration_minutes?: number;
+  distance?: number;
+  calories_burned?: number;
 }
 
 serve(async (req) => {
@@ -64,14 +69,16 @@ Input: "${inputText}"
 
 Return only valid JSON, no additional text:`;
     } else {
-      example = '{"name": "bench press", "sets": 4, "rep_range": "8-12"}';
+      example = '{"exercise_name": "bench press", "exercise_type": "strength", "sets": 4, "reps": 10, "weight": 135, "calories_burned": 180}';
       prompt = `Parse this exercise description into valid JSON with this exact format: ${example}
 
 Rules:
-- Extract exercise name (lowercase, no special formatting)
-- Default to 3 sets if not specified
-- Use format "8-12" for rep ranges, or single number if specific
-- If multiple exercises mentioned, return data for the first one
+- Determine if this is "cardio" or "strength" exercise
+- For CARDIO (running, cycling, swimming, etc.): include duration_minutes, distance (if mentioned), and estimate calories_burned using METs
+- For STRENGTH (weights, bodyweight exercises): include sets, reps, weight (if mentioned), and estimate calories_burned
+- Extract exercise_name (lowercase, descriptive)
+- Use reasonable estimates for missing values
+- Estimate calories_burned based on exercise type and intensity
 
 Input: "${inputText}"
 
@@ -136,9 +143,9 @@ Return only valid JSON, no additional text:`;
         }
       } else {
         const exercise = parsed as ParsedExercise;
-        if (typeof exercise.name !== 'string' || 
-            typeof exercise.sets !== 'number' || 
-            typeof exercise.rep_range !== 'string') {
+        if (typeof exercise.exercise_name !== 'string' || 
+            typeof exercise.exercise_type !== 'string' ||
+            !['cardio', 'strength'].includes(exercise.exercise_type)) {
           return new Response(
             JSON.stringify({ success: false, error: 'Invalid exercise structure returned' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

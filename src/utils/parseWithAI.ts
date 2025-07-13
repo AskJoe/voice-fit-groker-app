@@ -9,9 +9,14 @@ export interface ParsedFood {
 }
 
 export interface ParsedExercise {
-  name: string;
-  sets: number;
-  rep_range: string;
+  exercise_name: string;
+  exercise_type: 'cardio' | 'strength';
+  sets?: number;
+  reps?: number;
+  weight?: number;
+  duration_minutes?: number;
+  distance?: number;
+  calories_burned?: number;
 }
 
 export interface ParseResult<T> {

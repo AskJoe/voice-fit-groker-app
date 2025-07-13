@@ -61,6 +61,17 @@ interface DayDetailViewProps {
     calories: number | null;
     protein: number | null;
   }>;
+  workoutEntries: Array<{
+    id: string;
+    exercise_name: string;
+    exercise_type: 'cardio' | 'strength';
+    sets?: number | null;
+    reps?: number | null;
+    weight?: number | null;
+    duration_minutes?: number | null;
+    distance?: number | null;
+    calories_burned?: number | null;
+  }>;
   onToggleComplete: (itemId: string, itemType: 'meal' | 'exercise', completed: boolean) => void;
   onUpdateDetails: (itemId: string, itemType: 'meal' | 'exercise', details: any) => void;
   onRefresh: () => void;
@@ -73,6 +84,7 @@ export function DayDetailView({
   dailyLogs, 
   userId,
   foodEntries,
+  workoutEntries,
   onToggleComplete, 
   onUpdateDetails,
   onRefresh
@@ -124,6 +136,31 @@ export function DayDetailView({
       toast({
         title: "Error",
         description: "Failed to delete food item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteWorkout = async (workoutId: string) => {
+    try {
+      const { error } = await supabase
+        .from('workouts')
+        .delete()
+        .eq('id', workoutId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Exercise deleted",
+        description: "Exercise has been removed from your log.",
+      });
+
+      onRefresh(); // Refresh the data to update the UI
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete exercise. Please try again.",
         variant: "destructive",
       });
     }
@@ -545,6 +582,69 @@ export function DayDetailView({
                 </div>
               );
             })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Logged Workout Entries */}
+      {workoutEntries.length > 0 && (
+        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <span>🏋️</span>
+              Today's Logged Exercises
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {workoutEntries.map((workout) => (
+              <div key={workout.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-white font-medium capitalize">{workout.exercise_name}</span>
+                    <Badge 
+                      variant={workout.exercise_type === 'cardio' ? 'default' : 'secondary'} 
+                      className="text-xs"
+                    >
+                      {workout.exercise_type}
+                    </Badge>
+                  </div>
+                  <div className="flex gap-2 text-xs text-white/60 flex-wrap">
+                    {workout.exercise_type === 'strength' && (
+                      <>
+                        {workout.sets && <span>{workout.sets} sets</span>}
+                        {workout.reps && <span>{workout.reps} reps</span>}
+                        {workout.weight && <span>{workout.weight} lbs</span>}
+                      </>
+                    )}
+                    {workout.exercise_type === 'cardio' && (
+                      <>
+                        {workout.duration_minutes && <span>{workout.duration_minutes} min</span>}
+                        {workout.distance && <span>{workout.distance} mi</span>}
+                      </>
+                    )}
+                    {workout.calories_burned && <span>{workout.calories_burned} cal burned</span>}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteWorkout(workout.id)}
+                  className="h-8 w-8 p-0 text-white/60 hover:text-white hover:bg-red-500/20"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            
+            {/* Show total calories burned */}
+            <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/10">
+              <div className="text-center text-white">
+                <span className="text-lg font-semibold">
+                  {workoutEntries.reduce((total, workout) => total + (workout.calories_burned || 0), 0)}
+                </span>
+                <span className="text-white/60 text-sm ml-1">total calories burned</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

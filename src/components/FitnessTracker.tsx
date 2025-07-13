@@ -56,6 +56,17 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
     calories: number | null;
     protein: number | null;
   }>>([]);
+  const [workoutEntries, setWorkoutEntries] = useState<Array<{
+    id: string;
+    exercise_name: string;
+    exercise_type: 'cardio' | 'strength';
+    sets?: number | null;
+    reps?: number | null;
+    weight?: number | null;
+    duration_minutes?: number | null;
+    distance?: number | null;
+    calories_burned?: number | null;
+  }>>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentWeek, setCurrentWeek] = useState(new Date());
@@ -261,8 +272,32 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
     }
   };
 
+  const loadWorkoutEntries = async () => {
+    try {
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      console.log('Loading workout entries for date:', dateStr);
+      
+      const { data: workouts, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .filter('date', 'gte', `${dateStr}T00:00:00`)
+        .filter('date', 'lt', `${dateStr}T23:59:59`);
+      
+      if (error) {
+        console.error('Error loading workout entries:', error);
+        return;
+      }
+      
+      console.log('Workout entries loaded:', workouts);
+      setWorkoutEntries((workouts as any[]) || []);
+    } catch (error) {
+      console.error('Error loading workout entries:', error);
+    }
+  };
+
   const refreshData = async () => {
-    await Promise.all([loadDailyLogs(), loadFoodEntries()]);
+    await Promise.all([loadDailyLogs(), loadFoodEntries(), loadWorkoutEntries()]);
   };
 
   const getWorkoutForDay = (date: Date) => {
@@ -504,6 +539,7 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
               dailyLogs={dailyLogs}
               userId={user.id}
               foodEntries={foodEntries}
+              workoutEntries={workoutEntries}
               onToggleComplete={handleToggleComplete}
               onUpdateDetails={handleUpdateDetails}
               onRefresh={refreshData}
