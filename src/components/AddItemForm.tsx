@@ -57,13 +57,15 @@ export function AddItemForm({ type, userId, selectedDate, onItemAdded }: AddItem
       if (type === 'food') {
         const foodData = preview as ParsedFood;
         
-        // Add to meal_plans table
+        // Add to food table
         const { error } = await supabase
-          .from('meal_plans')
+          .from('food')
           .insert({
             user_id: userId,
-            meal_type: 'AI Added',
-            details: foodData as any,
+            meal: foodData.items.join(', '),
+            calories: foodData.calories,
+            protein: foodData.protein,
+            date: selectedDate.toISOString(),
           });
 
         if (error) throw error;
