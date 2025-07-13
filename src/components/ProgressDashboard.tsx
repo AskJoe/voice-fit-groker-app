@@ -105,11 +105,13 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
         // Get all workouts logged for this date
         const { data: workouts } = await supabase
           .from('workouts')
-          .select('calories_burned')
+          .select('calories_burned, exercise_name, date')
           .eq('user_id', user.id)
           .gte('date', `${date}T00:00:00.000Z`)
           .lt('date', `${date}T23:59:59.999Z`);
 
+        console.log(`Workouts for ${date}:`, workouts);
+        
         const exercise_count = workouts?.length || 0;
         const total_calories = workouts?.reduce((sum, workout) => sum + (workout.calories_burned || 0), 0) || 0;
 
