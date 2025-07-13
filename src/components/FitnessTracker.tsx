@@ -239,12 +239,17 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
 
   const loadFoodEntries = async () => {
     try {
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      console.log('Loading food entries for date:', dateStr);
+      
       const { data: food } = await supabase
         .from('food')
         .select('*')
         .eq('user_id', user.id)
-        .eq('date', format(selectedDate, 'yyyy-MM-dd'));
+        .gte('date', `${dateStr}T00:00:00.000Z`)
+        .lt('date', `${dateStr}T23:59:59.999Z`);
       
+      console.log('Food entries loaded:', food);
       setFoodEntries((food as any[]) || []);
     } catch (error) {
       console.error('Error loading food entries:', error);
