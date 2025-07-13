@@ -167,14 +167,32 @@ export function DayDetailView({
   };
 
   const getDailyNutritionTotals = () => {
+    // Helper function to safely parse numeric values, handling text ranges
+    const parseNumeric = (value: any): number => {
+      if (typeof value === 'number') return value;
+      if (typeof value === 'string') {
+        // If it's a range like "400-500", take the average
+        if (value.includes('-')) {
+          const parts = value.split('-').map(p => parseFloat(p.trim()));
+          if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+            return (parts[0] + parts[1]) / 2;
+          }
+        }
+        // Otherwise try to parse as number
+        const parsed = parseFloat(value);
+        return isNaN(parsed) ? 0 : parsed;
+      }
+      return 0;
+    };
+
     const potential = mealPlans.reduce((totals, meal) => {
       const log = getLogForItem(meal.id, 'meal');
       const details = log?.modified_details || meal.details;
       return {
-        calories: totals.calories + (details.calories || 0),
-        protein: totals.protein + (details.protein || 0),
-        fat: totals.fat + (details.fat || 0),
-        carbs: totals.carbs + (details.carbs || 0)
+        calories: totals.calories + parseNumeric(details.calories),
+        protein: totals.protein + parseNumeric(details.protein),
+        fat: totals.fat + parseNumeric(details.fat),
+        carbs: totals.carbs + parseNumeric(details.carbs)
       };
     }, { calories: 0, protein: 0, fat: 0, carbs: 0 });
 
@@ -184,10 +202,10 @@ export function DayDetailView({
       if (log?.completed) {
         const details = log?.modified_details || meal.details;
         return {
-          calories: totals.calories + (details.calories || 0),
-          protein: totals.protein + (details.protein || 0),
-          fat: totals.fat + (details.fat || 0),
-          carbs: totals.carbs + (details.carbs || 0)
+          calories: totals.calories + parseNumeric(details.calories),
+          protein: totals.protein + parseNumeric(details.protein),
+          fat: totals.fat + parseNumeric(details.fat),
+          carbs: totals.carbs + parseNumeric(details.carbs)
         };
       }
       return totals;
@@ -195,8 +213,8 @@ export function DayDetailView({
 
     // Add AI-added food entries to actual totals
     const foodTotals = foodEntries.reduce((totals, food) => ({
-      calories: totals.calories + (food.calories || 0),
-      protein: totals.protein + (food.protein || 0),
+      calories: totals.calories + parseNumeric(food.calories),
+      protein: totals.protein + parseNumeric(food.protein),
       fat: totals.fat + 0, // food table doesn't have fat/carbs yet
       carbs: totals.carbs + 0
     }), { calories: 0, protein: 0, fat: 0, carbs: 0 });
@@ -204,10 +222,10 @@ export function DayDetailView({
     return { 
       potential, 
       actual: {
-        calories: actual.calories + foodTotals.calories,
-        protein: actual.protein + foodTotals.protein,
-        fat: actual.fat + foodTotals.fat,
-        carbs: actual.carbs + foodTotals.carbs
+        calories: Math.round(actual.calories + foodTotals.calories),
+        protein: Math.round(actual.protein + foodTotals.protein),
+        fat: Math.round(actual.fat + foodTotals.fat),
+        carbs: Math.round(actual.carbs + foodTotals.carbs)
       }
     };
   };
