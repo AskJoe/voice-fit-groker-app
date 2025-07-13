@@ -364,6 +364,28 @@ export function DayDetailView({
             );
           })}
           
+          {/* AI-Added Food Items */}
+          {foodEntries.length > 0 && (
+            <div className="border-t border-white/10 pt-4 mt-4">
+              <h4 className="text-sm font-medium text-white/80 mb-3 flex items-center gap-2">
+                <span>🤖</span>
+                AI-Added Foods
+              </h4>
+              {foodEntries.map((food) => (
+                <div key={food.id} className="flex items-center gap-3 p-2 rounded-lg bg-white/5 mb-2">
+                  <div className="flex-1">
+                    <span className="text-white font-medium">{food.meal}</span>
+                    <div className="text-xs text-white/60 mt-1">
+                      {food.calories ? `${food.calories} cal` : ''} 
+                      {food.calories && food.protein ? ' • ' : ''}
+                      {food.protein ? `${food.protein}g protein` : ''}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
           {/* Add Food with AI Form */}
           <div className="border border-white/20 rounded-lg p-4 bg-white/5 border-dashed">
             <AddItemForm 
