@@ -1,30 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Dumbbell, 
-  Heart, 
-  Apple, 
-  Scale, 
-  Target,
-  TrendingUp,
-  Trophy,
-  Activity,
-  LogOut
-} from 'lucide-react';
-import { VoiceInput } from './VoiceInput';
-import { ProgressChart } from './ProgressChart';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, Check, Clock, Target, Users, Utensils, Dumbbell, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import type { User } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 
-interface WorkoutLog {
+interface MealPlan {
   id: string;
-  type: 'exercise' | 'cardio' | 'meal' | 'weight';
-  data: any;
-  date: Date;
+  meal_type: string;
+  details: {
+    items: string[];
+    calories: number;
+    protein: number;
+  };
+}
+
+interface WorkoutPlan {
+  id: string;
+  day: string;
+  exercises: Array<{
+    name: string;
+    sets: number;
+    rep_range: string;
+  }>;
 }
 
 interface FitnessTrackerProps {
@@ -33,168 +34,207 @@ interface FitnessTrackerProps {
 }
 
 export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
-  const [activeTab, setActiveTab] = useState('log');
-  const [logs, setLogs] = useState<WorkoutLog[]>([]);
-  const [currentWeight, setCurrentWeight] = useState(216);
-  const [targetWeight] = useState(210);
+  const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
+  const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Load data from Supabase on component mount
   useEffect(() => {
-    loadUserData();
+    if (user) {
+      initializePlans();
+    }
   }, [user]);
 
-  const loadUserData = async () => {
-    if (!user) return;
-
+  async function initializePlans() {
     try {
-      // Load weight logs
-      const { data: weightLogs } = await supabase
-        .from('weight_logs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false })
-        .limit(1);
-
-      if (weightLogs && weightLogs.length > 0) {
-        setCurrentWeight(weightLogs[0].weight);
-      }
-
-      // Load all logs for display
-      const [exercises, cardio, food, weights] = await Promise.all([
-        supabase.from('exercises').select('*').eq('user_id', user.id).order('date', { ascending: false }),
-        supabase.from('cardio').select('*').eq('user_id', user.id).order('date', { ascending: false }),
-        supabase.from('food').select('*').eq('user_id', user.id).order('date', { ascending: false }),
-        supabase.from('weight_logs').select('*').eq('user_id', user.id).order('date', { ascending: false })
-      ]);
-
-      const allLogs: WorkoutLog[] = [
-        ...(exercises.data || []).map(e => ({ id: e.id, type: 'exercise' as const, data: e, date: new Date(e.date) })),
-        ...(cardio.data || []).map(c => ({ id: c.id, type: 'cardio' as const, data: c, date: new Date(c.date) })),
-        ...(food.data || []).map(f => ({ id: f.id, type: 'meal' as const, data: f, date: new Date(f.date) })),
-        ...(weights.data || []).map(w => ({ id: w.id, type: 'weight' as const, data: w, date: new Date(w.date) }))
-      ].sort((a, b) => b.date.getTime() - a.date.getTime());
-
-      setLogs(allLogs);
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load your data. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const addLog = async (type: WorkoutLog['type'], data: any) => {
-    console.log('addLog called with:', { type, data, user: user?.id });
-    if (!user) {
-      console.error('No user found for logging');
-      return;
-    }
-
-    try {
-      let result;
-      const baseData = { user_id: user.id, ...data };
-      console.log('Attempting to save data:', baseData);
-
-      switch (type) {
-        case 'exercise':
-          console.log('Saving exercise to Supabase...');
-          result = await supabase.from('exercises').insert(baseData).select().single();
-          break;
-        case 'cardio':
-          console.log('Saving cardio to Supabase...');
-          result = await supabase.from('cardio').insert(baseData).select().single();
-          break;
-        case 'meal':
-          console.log('Saving meal to Supabase...');
-          result = await supabase.from('food').insert({ user_id: user.id, meal: data.meal, calories: data.calories, protein: data.protein }).select().single();
-          break;
-        case 'weight':
-          console.log('Saving weight to Supabase...');
-          result = await supabase.from('weight_logs').insert({ user_id: user.id, weight: data.weight }).select().single();
-          setCurrentWeight(data.weight);
-          break;
-      }
-
-      console.log('Supabase result:', result);
-      if (result.error) {
-        console.error('Supabase error:', result.error);
-        throw result.error;
-      }
-
-      const newLog: WorkoutLog = {
-        id: result.data.id,
-        type,
-        data: result.data,
-        date: new Date(result.data.date)
-      };
+      setLoading(true);
       
-      setLogs(prev => [newLog, ...prev]);
-      console.log('Log added successfully:', newLog);
-      
-      toast({
-        title: "Success!",
-        description: `${type.charAt(0).toUpperCase() + type.slice(1)} logged successfully.`,
-      });
-
-      // Update presets for learning
-      await updatePresets(type, data);
-    } catch (error) {
-      console.error('Error saving log:', error);
-      toast({
-        title: "Error",
-        description: `Failed to save your log: ${error.message || 'Unknown error'}`,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const updatePresets = async (type: WorkoutLog['type'], data: any) => {
-    if (!user || type === 'weight') return;
-
-    try {
-      const name = type === 'exercise' ? data.exercise : type === 'cardio' ? data.activity : data.meal;
-      const details = type === 'meal' ? { calories: data.calories, protein: data.protein } : data;
-
-      // Check if preset exists
-      const { data: existingPreset } = await supabase
-        .from('presets')
+      // Check if meal plans exist
+      const { data: existingMeals } = await supabase
+        .from('meal_plans')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('type', type === 'meal' ? 'meal' : 'exercise')
-        .eq('name', name)
-        .single();
-
-      if (existingPreset) {
-        // Increment usage count
-        await supabase
-          .from('presets')
-          .update({ usage_count: existingPreset.usage_count + 1 })
-          .eq('id', existingPreset.id);
+        .eq('user_id', user.id);
+      
+      if (!existingMeals || existingMeals.length === 0) {
+        // Insert default meals
+        const defaultMeals = [
+          { 
+            meal_type: 'Breakfast', 
+            details: { 
+              items: ['3 large eggs (scrambled or boiled)', '1 medium bagel (plain)', '1 cup plain Greek yogurt'], 
+              calories: 600, 
+              protein: 50 
+            } 
+          },
+          { 
+            meal_type: 'Lunch', 
+            details: { 
+              items: ['6 oz grilled chicken breast', '1 cup cooked white rice', '1 oz almonds'], 
+              calories: 550, 
+              protein: 55 
+            } 
+          },
+          { 
+            meal_type: 'Dinner', 
+            details: { 
+              items: ['8 oz grilled steak (lean cut, e.g., sirloin)', '1 medium sweet potato (baked, ~130g)', '1 oz walnuts'], 
+              calories: 650, 
+              protein: 60 
+            } 
+          },
+          { 
+            meal_type: 'Snack', 
+            details: { 
+              items: ['2 large eggs (hard-boiled)', '1/2 cup cooked pasta (plain)'], 
+              calories: 300, 
+              protein: 45 
+            } 
+          }
+        ];
+        
+        const { data: insertedMeals } = await supabase
+          .from('meal_plans')
+          .insert(defaultMeals.map(m => ({ ...m, user_id: user.id })))
+          .select();
+        
+        setMealPlans((insertedMeals as unknown as MealPlan[]) || []);
       } else {
-        // Create new preset
-        await supabase
-          .from('presets')
-          .insert({
-            user_id: user.id,
-            type: type === 'meal' ? 'meal' : 'exercise',
-            name,
-            details
-          });
+        setMealPlans(existingMeals as unknown as MealPlan[]);
       }
+
+      // Check if workout plans exist
+      const { data: existingWorkouts } = await supabase
+        .from('workout_plans')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (!existingWorkouts || existingWorkouts.length === 0) {
+        // Insert default weekly workouts
+        const defaultWorkouts = [
+          { 
+            day: 'Monday', 
+            exercises: [
+              { name: 'Bench Press (barbell or dumbbell)', sets: 4, rep_range: '8-12' }, 
+              { name: 'Incline Press (dumbbell)', sets: 4, rep_range: '8-12' }, 
+              { name: 'Tricep Dips (using bench)', sets: 4, rep_range: '8-12' }
+            ] 
+          },
+          { 
+            day: 'Tuesday', 
+            exercises: [
+              { name: 'Long Swim or Bike Ride', sets: 1, rep_range: '30-60 min (moderate pace)' }
+            ] 
+          },
+          { 
+            day: 'Wednesday', 
+            exercises: [
+              { name: 'Pull-Ups (assisted if needed)', sets: 4, rep_range: '8-12' }, 
+              { name: 'Bent-Over Rows (barbell)', sets: 4, rep_range: '8-12' }, 
+              { name: 'Bicep Curls (dumbbell)', sets: 4, rep_range: '8-12' }
+            ] 
+          },
+          { 
+            day: 'Thursday', 
+            exercises: [
+              { name: 'Long Run', sets: 1, rep_range: '30-60 min (steady pace)' }
+            ] 
+          },
+          { 
+            day: 'Friday', 
+            exercises: [
+              { name: 'Overhead Press (barbell)', sets: 4, rep_range: '8-12' }, 
+              { name: 'Lateral Raises (dumbbell)', sets: 4, rep_range: '8-12' }, 
+              { name: 'Squats (barbell)', sets: 4, rep_range: '8-12' }
+            ] 
+          },
+          { 
+            day: 'Saturday', 
+            exercises: [] 
+          },
+          { 
+            day: 'Sunday', 
+            exercises: [
+              { name: 'Deadlifts (barbell)', sets: 4, rep_range: '8-12' }, 
+              { name: 'Push-Ups', sets: 4, rep_range: '8-12' }
+            ] 
+          }
+        ];
+        
+        const { data: insertedWorkouts } = await supabase
+          .from('workout_plans')
+          .insert(defaultWorkouts.map(w => ({ ...w, user_id: user.id })))
+          .select();
+        
+        setWorkoutPlans((insertedWorkouts as unknown as WorkoutPlan[]) || []);
+      } else {
+        setWorkoutPlans(existingWorkouts as unknown as WorkoutPlan[]);
+      }
+      
+      toast({
+        title: "Plans initialized!",
+        description: "Your meal and workout plans are ready.",
+      });
     } catch (error) {
-      console.error('Error updating presets:', error);
+      console.error('Error initializing plans:', error);
+      toast({
+        title: "Error",
+        description: "Failed to initialize your plans. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
+  }
+
+  const getTodayWorkout = () => {
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const todayName = dayNames[new Date().getDay()];
+    return workoutPlans.find(plan => plan.day.toLowerCase() === todayName);
   };
 
-  const weightProgress = ((216 - currentWeight) / (216 - targetWeight)) * 100;
+  const getTotalDailyNutrition = () => {
+    return mealPlans.reduce((total, meal) => ({
+      calories: total.calories + meal.details.calories,
+      protein: total.protein + meal.details.protein
+    }), { calories: 0, protein: 0 });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-hero">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2">FitTracker</h1>
+              <p className="text-white/80">Welcome back, {user.email?.split('@')[0]}!</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSignOut}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Sign Out
+            </Button>
+          </div>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+              <p className="text-white/80">Setting up your fitness plans...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const todayWorkout = getTodayWorkout();
+  const totalNutrition = getTotalDailyNutrition();
 
   return (
     <div className="min-h-screen bg-gradient-hero">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">FitTracker</h1>
@@ -211,187 +251,136 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
           </Button>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {/* Daily Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-            <CardContent className="p-4 text-center">
-              <Scale className="h-8 w-8 text-white mx-auto mb-2" />
-              <p className="text-2xl font-bold text-white">{currentWeight}</p>
-              <p className="text-white/80 text-sm">Current</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-white">
+                <Target className="h-4 w-4" />
+                Daily Nutrition
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold mb-1 text-white">{totalNutrition.calories} kcal</div>
+              <div className="text-sm text-white/70">{totalNutrition.protein}g protein</div>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-            <CardContent className="p-4 text-center">
-              <Target className="h-8 w-8 text-white mx-auto mb-2" />
-              <p className="text-2xl font-bold text-white">{targetWeight}</p>
-              <p className="text-white/80 text-sm">Target</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-white">
+                <Calendar className="h-4 w-4" />
+                Today's Workout
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {todayWorkout && todayWorkout.exercises.length > 0 ? (
+                <div>
+                  <div className="text-2xl font-bold mb-1 text-white">{todayWorkout.day}</div>
+                  <div className="text-sm text-white/70">{todayWorkout.exercises.length} exercises</div>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-2xl font-bold mb-1 text-white">Rest Day</div>
+                  <div className="text-sm text-white/70">Recovery time</div>
+                </div>
+              )}
             </CardContent>
           </Card>
-          
+
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-            <CardContent className="p-4 text-center">
-              <Trophy className="h-8 w-8 text-white mx-auto mb-2" />
-              <p className="text-2xl font-bold text-white">{Math.max(0, 216 - currentWeight).toFixed(1)}</p>
-              <p className="text-white/80 text-sm">Lost (lbs)</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-            <CardContent className="p-4 text-center">
-              <Activity className="h-8 w-8 text-white mx-auto mb-2" />
-              <p className="text-2xl font-bold text-white">{logs.filter(l => l.type === 'exercise').length}</p>
-              <p className="text-white/80 text-sm">Workouts</p>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-white">
+                <Clock className="h-4 w-4" />
+                This Week
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold mb-1 text-white">6/7</div>
+              <div className="text-sm text-white/70">workout days planned</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs defaultValue="meals" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 bg-white/10 backdrop-blur-sm">
-            <TabsTrigger value="log" className="data-[state=active]:bg-white data-[state=active]:text-primary">
-              Log Activity
+            <TabsTrigger value="meals" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-primary">
+              <Utensils className="h-4 w-4" />
+              Meal Plans
             </TabsTrigger>
-            <TabsTrigger value="progress" className="data-[state=active]:bg-white data-[state=active]:text-primary">
-              Progress
+            <TabsTrigger value="workouts" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-primary">
+              <Dumbbell className="h-4 w-4" />
+              Workout Plans
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="log" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Exercise Logging */}
-              <Card className="bg-white shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Dumbbell className="h-5 w-5 text-primary" />
-                    Log Exercise
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <VoiceInput 
-                    type="exercise"
-                    onSubmit={(data) => addLog('exercise', data)}
-                    placeholder="Say: 'Bench press, 3 sets of 8 at 185 pounds'"
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Cardio Logging */}
-              <Card className="bg-white shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Heart className="h-5 w-5 text-destructive" />
-                    Log Cardio
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <VoiceInput 
-                    type="cardio"
-                    onSubmit={(data) => addLog('cardio', data)}
-                    placeholder="Say: 'Run 3 miles in 25 minutes'"
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Meal Logging */}
-              <Card className="bg-white shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Apple className="h-5 w-5 text-accent" />
-                    Log Meal
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <VoiceInput 
-                    type="meal"
-                    onSubmit={(data) => addLog('meal', data)}
-                    placeholder="Say: 'Chicken breast and rice'"
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Weight Logging */}
-              <Card className="bg-white shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Scale className="h-5 w-5 text-secondary" />
-                    Log Weight
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <VoiceInput 
-                    type="weight"
-                    onSubmit={(data) => addLog('weight', data)}
-                    placeholder="Say: '214.5 pounds'"
-                  />
-                </CardContent>
-              </Card>
+          <TabsContent value="meals" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {mealPlans.map((meal) => (
+                <Card key={meal.id} className="h-full bg-white shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      {meal.meal_type}
+                      <Badge variant="secondary">
+                        {meal.details.calories} kcal
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      {meal.details.protein}g protein
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {meal.details.items.map((item, index) => (
+                        <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                          <Check className="h-3 w-3 mt-1 text-primary shrink-0" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </TabsContent>
 
-          <TabsContent value="progress" className="space-y-6">
-            <div className="grid gap-6">
-              {/* Weight Progress */}
-              <Card className="bg-white shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    Weight Progress
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between text-sm">
-                      <span>Current: {currentWeight} lbs</span>
-                      <span>Target: {targetWeight} lbs</span>
-                    </div>
-                    <Progress value={Math.min(100, Math.max(0, weightProgress))} className="h-3" />
-                    <p className="text-sm text-muted-foreground text-center">
-                      {weightProgress >= 100 ? "🎉 Goal achieved!" : `${(6 - (216 - currentWeight)).toFixed(1)} lbs to go!`}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Progress Chart */}
-              <Card className="bg-white shadow-card">
-                <CardHeader>
-                  <CardTitle>Weight Tracking</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ProgressChart logs={logs.filter(l => l.type === 'weight')} />
-                </CardContent>
-              </Card>
-
-              {/* Recent Activity */}
-              <Card className="bg-white shadow-card">
-                <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {logs.slice(0, 5).map((log) => (
-                      <div key={log.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div className="flex items-center gap-2">
-                          {log.type === 'exercise' && <Dumbbell className="h-4 w-4 text-primary" />}
-                          {log.type === 'cardio' && <Heart className="h-4 w-4 text-destructive" />}
-                          {log.type === 'meal' && <Apple className="h-4 w-4 text-accent" />}
-                          {log.type === 'weight' && <Scale className="h-4 w-4 text-secondary" />}
-                          <span className="font-medium capitalize">{log.type}</span>
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          {log.date.toLocaleDateString()}
-                        </span>
+          <TabsContent value="workouts" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {workoutPlans.map((workout) => (
+                <Card key={workout.id} className="h-full bg-white shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      {workout.day}
+                      {workout.exercises.length === 0 ? (
+                        <Badge variant="outline">Rest Day</Badge>
+                      ) : (
+                        <Badge variant="secondary">
+                          {workout.exercises.length} exercises
+                        </Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {workout.exercises.length > 0 ? (
+                      <div className="space-y-3">
+                        {workout.exercises.map((exercise, index) => (
+                          <div key={index} className="border rounded-lg p-3">
+                            <div className="font-medium text-sm mb-1">{exercise.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {exercise.sets} sets × {exercise.rep_range} reps
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                    {logs.length === 0 && (
-                      <p className="text-center text-muted-foreground py-8">
-                        No activity logged yet. Start by logging your first workout!
-                      </p>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Users className="h-8 w-8 mx-auto mb-2" />
+                        <p>Recovery day - take a well-deserved rest!</p>
+                      </div>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </TabsContent>
         </Tabs>
