@@ -50,6 +50,12 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
+  const [foodEntries, setFoodEntries] = useState<Array<{
+    id: string;
+    meal: string;
+    calories: number | null;
+    protein: number | null;
+  }>>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentWeek, setCurrentWeek] = useState(new Date());
@@ -64,7 +70,7 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
 
   useEffect(() => {
     if (user && mealPlans.length > 0) {
-      loadDailyLogs();
+      refreshData();
     }
   }, [user, selectedDate, mealPlans]);
 
@@ -229,6 +235,24 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
     } catch (error) {
       console.error('Error loading daily logs:', error);
     }
+  };
+
+  const loadFoodEntries = async () => {
+    try {
+      const { data: food } = await supabase
+        .from('food')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', format(selectedDate, 'yyyy-MM-dd'));
+      
+      setFoodEntries((food as any[]) || []);
+    } catch (error) {
+      console.error('Error loading food entries:', error);
+    }
+  };
+
+  const refreshData = async () => {
+    await Promise.all([loadDailyLogs(), loadFoodEntries()]);
   };
 
   const getWorkoutForDay = (date: Date) => {
@@ -469,10 +493,10 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
               workoutPlan={workoutForSelectedDay}
               dailyLogs={dailyLogs}
               userId={user.id}
-              foodEntries={[]} // We'll load this properly next
+              foodEntries={foodEntries}
               onToggleComplete={handleToggleComplete}
               onUpdateDetails={handleUpdateDetails}
-              onRefresh={loadDailyLogs}
+              onRefresh={refreshData}
             />
           </>
         ) : (
