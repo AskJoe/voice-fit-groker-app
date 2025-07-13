@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_logs: {
+        Row: {
+          completed: boolean
+          created_at: string
+          date: string
+          id: string
+          item_id: string
+          item_type: string
+          modified_details: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          date: string
+          id?: string
+          item_id: string
+          item_type: string
+          modified_details?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          date?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          modified_details?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       exercises: {
         Row: {
           created_at: string

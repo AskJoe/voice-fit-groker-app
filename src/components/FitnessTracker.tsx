@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Check, Clock, Target, Users, Utensils, Dumbbell, LogOut } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { WeeklyCalendar } from '@/components/WeeklyCalendar';
+import { DayDetailView } from '@/components/DayDetailView';
+import { addWeeks, subWeeks, format } from 'date-fns';
 
 interface MealPlan {
   id: string;
@@ -28,6 +28,15 @@ interface WorkoutPlan {
   }>;
 }
 
+interface DailyLog {
+  id: string;
+  item_id: string;
+  item_type: 'meal' | 'exercise';
+  completed: boolean;
+  modified_details?: any;
+  date: string;
+}
+
 interface FitnessTrackerProps {
   user: User;
   onSignOut: () => void;
@@ -36,7 +45,10 @@ interface FitnessTrackerProps {
 export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
+  const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentWeek, setCurrentWeek] = useState(new Date());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,6 +56,12 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
       initializePlans();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user && mealPlans.length > 0) {
+      loadDailyLogs();
+    }
+  }, [user, selectedDate, mealPlans]);
 
   async function initializePlans() {
     try {
@@ -186,17 +204,130 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
     }
   }
 
-  const getTodayWorkout = () => {
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const todayName = dayNames[new Date().getDay()];
-    return workoutPlans.find(plan => plan.day.toLowerCase() === todayName);
+  const loadDailyLogs = async () => {
+    try {
+      const { data: logs } = await supabase
+        .from('daily_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', format(selectedDate, 'yyyy-MM-dd'));
+      
+      setDailyLogs((logs as DailyLog[]) || []);
+    } catch (error) {
+      console.error('Error loading daily logs:', error);
+    }
   };
 
-  const getTotalDailyNutrition = () => {
-    return mealPlans.reduce((total, meal) => ({
-      calories: total.calories + meal.details.calories,
-      protein: total.protein + meal.details.protein
-    }), { calories: 0, protein: 0 });
+  const getWorkoutForDay = (date: Date) => {
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = dayNames[date.getDay()];
+    return workoutPlans.find(plan => plan.day === dayName);
+  };
+
+  const handleToggleComplete = async (itemId: string, itemType: 'meal' | 'exercise', completed: boolean) => {
+    try {
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const existingLog = dailyLogs.find(log => log.item_id === itemId && log.item_type === itemType);
+
+      if (existingLog) {
+        // Update existing log
+        const { error } = await supabase
+          .from('daily_logs')
+          .update({ completed })
+          .eq('id', existingLog.id);
+
+        if (error) throw error;
+
+        setDailyLogs(prev => prev.map(log => 
+          log.id === existingLog.id ? { ...log, completed } : log
+        ));
+      } else {
+        // Create new log
+        const { data, error } = await supabase
+          .from('daily_logs')
+          .insert({
+            user_id: user.id,
+            date: dateStr,
+            item_type: itemType,
+            item_id: itemId,
+            completed
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setDailyLogs(prev => [...prev, data as DailyLog]);
+      }
+    } catch (error) {
+      console.error('Error toggling completion:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update completion status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateDetails = async (itemId: string, itemType: 'meal' | 'exercise', details: any) => {
+    try {
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const existingLog = dailyLogs.find(log => log.item_id === itemId && log.item_type === itemType);
+
+      if (existingLog) {
+        // Update existing log
+        const { error } = await supabase
+          .from('daily_logs')
+          .update({ modified_details: details })
+          .eq('id', existingLog.id);
+
+        if (error) throw error;
+
+        setDailyLogs(prev => prev.map(log => 
+          log.id === existingLog.id ? { ...log, modified_details: details } : log
+        ));
+      } else {
+        // Create new log with modifications
+        const { data, error } = await supabase
+          .from('daily_logs')
+          .insert({
+            user_id: user.id,
+            date: dateStr,
+            item_type: itemType,
+            item_id: itemId,
+            completed: false,
+            modified_details: details
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setDailyLogs(prev => [...prev, data as DailyLog]);
+      }
+
+      toast({
+        title: "Updated!",
+        description: "Your changes have been saved.",
+      });
+    } catch (error) {
+      console.error('Error updating details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save changes.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePreviousWeek = () => {
+    setCurrentWeek(prev => subWeeks(prev, 1));
+    setSelectedDate(prev => subWeeks(prev, 1));
+  };
+
+  const handleNextWeek = () => {
+    setCurrentWeek(prev => addWeeks(prev, 1));
+    setSelectedDate(prev => addWeeks(prev, 1));
   };
 
   if (loading) {
@@ -229,8 +360,7 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
     );
   }
 
-  const todayWorkout = getTodayWorkout();
-  const totalNutrition = getTotalDailyNutrition();
+  const workoutForSelectedDay = getWorkoutForDay(selectedDate);
 
   return (
     <div className="min-h-screen bg-gradient-hero">
@@ -251,139 +381,47 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
           </Button>
         </div>
 
-        {/* Daily Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-white">
-                <Target className="h-4 w-4" />
-                Daily Nutrition
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold mb-1 text-white">{totalNutrition.calories} kcal</div>
-              <div className="text-sm text-white/70">{totalNutrition.protein}g protein</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-white">
-                <Calendar className="h-4 w-4" />
-                Today's Workout
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {todayWorkout && todayWorkout.exercises.length > 0 ? (
-                <div>
-                  <div className="text-2xl font-bold mb-1 text-white">{todayWorkout.day}</div>
-                  <div className="text-sm text-white/70">{todayWorkout.exercises.length} exercises</div>
-                </div>
-              ) : (
-                <div>
-                  <div className="text-2xl font-bold mb-1 text-white">Rest Day</div>
-                  <div className="text-sm text-white/70">Recovery time</div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-white">
-                <Clock className="h-4 w-4" />
-                This Week
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold mb-1 text-white">6/7</div>
-              <div className="text-sm text-white/70">workout days planned</div>
-            </CardContent>
-          </Card>
+        {/* Week Navigation */}
+        <div className="flex items-center justify-between mb-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePreviousWeek}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Previous Week
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNextWeek}
+            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            Next Week
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
         </div>
 
-        <Tabs defaultValue="meals" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 bg-white/10 backdrop-blur-sm">
-            <TabsTrigger value="meals" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-primary">
-              <Utensils className="h-4 w-4" />
-              Meal Plans
-            </TabsTrigger>
-            <TabsTrigger value="workouts" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:text-primary">
-              <Dumbbell className="h-4 w-4" />
-              Workout Plans
-            </TabsTrigger>
-          </TabsList>
+        {/* Weekly Calendar */}
+        <div className="mb-8">
+          <WeeklyCalendar
+            selectedDate={selectedDate}
+            onDateSelect={setSelectedDate}
+            weekStartsOn={0}
+          />
+        </div>
 
-          <TabsContent value="meals" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {mealPlans.map((meal) => (
-                <Card key={meal.id} className="h-full bg-white shadow-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      {meal.meal_type}
-                      <Badge variant="secondary">
-                        {meal.details.calories} kcal
-                      </Badge>
-                    </CardTitle>
-                    <CardDescription>
-                      {meal.details.protein}g protein
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {meal.details.items.map((item, index) => (
-                        <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                          <Check className="h-3 w-3 mt-1 text-primary shrink-0" />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="workouts" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {workoutPlans.map((workout) => (
-                <Card key={workout.id} className="h-full bg-white shadow-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      {workout.day}
-                      {workout.exercises.length === 0 ? (
-                        <Badge variant="outline">Rest Day</Badge>
-                      ) : (
-                        <Badge variant="secondary">
-                          {workout.exercises.length} exercises
-                        </Badge>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {workout.exercises.length > 0 ? (
-                      <div className="space-y-3">
-                        {workout.exercises.map((exercise, index) => (
-                          <div key={index} className="border rounded-lg p-3">
-                            <div className="font-medium text-sm mb-1">{exercise.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {exercise.sets} sets × {exercise.rep_range} reps
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Users className="h-8 w-8 mx-auto mb-2" />
-                        <p>Recovery day - take a well-deserved rest!</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+        {/* Day Detail View */}
+        <DayDetailView
+          selectedDate={selectedDate}
+          mealPlans={mealPlans}
+          workoutPlan={workoutForSelectedDay}
+          dailyLogs={dailyLogs}
+          onToggleComplete={handleToggleComplete}
+          onUpdateDetails={handleUpdateDetails}
+        />
       </div>
     </div>
   );
