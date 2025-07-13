@@ -6,6 +6,7 @@ export interface ParsedFood {
   fat: number;
   carbs: number;
   items: string[];
+  source?: string;
 }
 
 export interface ParsedExercise {

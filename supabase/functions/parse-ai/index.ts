@@ -12,6 +12,7 @@ interface ParsedFood {
   fat: number;
   carbs: number;
   items: string[];
+  source?: string; // Track data source (USDA or AI)
 }
 
 interface ParsedExercise {
@@ -140,6 +141,59 @@ Return only valid JSON, no additional text:`;
             JSON.stringify({ success: false, error: 'Invalid food structure returned' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
+        }
+
+        // For food items, lookup USDA data and replace AI estimates
+        console.log('Looking up USDA data for food items:', food.items);
+        try {
+          const usdaResponse = await fetch('https://jlpkhkxnzwehjiemgpvg.supabase.co/functions/v1/food-lookup', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ items: food.items })
+          });
+
+          if (usdaResponse.ok) {
+            const usdaData = await usdaResponse.json();
+            console.log('USDA lookup response:', usdaData);
+
+            // Calculate totals from USDA data
+            let totalCalories = 0;
+            let totalProtein = 0;
+            let totalFat = 0;
+            let totalCarbs = 0;
+            let usdaItemsFound = 0;
+
+            for (const result of usdaData.results) {
+              if (result.nutrients && result.source === 'USDA') {
+                totalCalories += result.nutrients.calories || 0;
+                totalProtein += result.nutrients.protein || 0;
+                totalFat += result.nutrients.fat || 0;
+                totalCarbs += result.nutrients.carbs || 0;
+                usdaItemsFound++;
+              }
+            }
+
+            // Only use USDA data if we found nutritional info for at least one item
+            if (usdaItemsFound > 0) {
+              console.log('Using USDA nutritional data');
+              parsed.calories = totalCalories;
+              parsed.protein = totalProtein;
+              parsed.fat = totalFat;
+              parsed.carbs = totalCarbs;
+              parsed.source = 'USDA';
+            } else {
+              console.log('No USDA data found, keeping AI estimates');
+              parsed.source = 'AI_ESTIMATE';
+            }
+          } else {
+            console.error('USDA lookup failed:', usdaResponse.status);
+            parsed.source = 'AI_ESTIMATE';
+          }
+        } catch (usdaError) {
+          console.error('Error calling USDA lookup:', usdaError);
+          parsed.source = 'AI_ESTIMATE';
         }
       } else {
         const exercise = parsed as ParsedExercise;

@@ -131,6 +131,11 @@ export function AddItemForm({ type, userId, selectedDate, onItemAdded }: AddItem
             <Badge variant="secondary">{food.protein}g protein</Badge>
             <Badge variant="secondary">{food.fat}g fat</Badge>
             <Badge variant="secondary">{food.carbs}g carbs</Badge>
+            {food.source && (
+              <Badge variant={food.source === 'USDA' ? 'default' : 'outline'} className="text-xs">
+                {food.source === 'USDA' ? 'USDA Data' : 'AI Estimate'}
+              </Badge>
+            )}
           </div>
         </div>
       );
