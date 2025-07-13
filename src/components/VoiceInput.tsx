@@ -77,16 +77,54 @@ export function VoiceInput({ type, onSubmit, placeholder }: VoiceInputProps) {
     try {
       switch (type) {
         case 'exercise':
-          // Parse: "bench press, 3 sets of 8 at 185 pounds"
-          const exerciseMatch = text.match(/(.+?),?\s*(\d+)\s*sets?\s*of\s*(\d+)\s*(?:at|@)\s*(\d+(?:\.\d+)?)\s*(?:pounds?|lbs?)?/);
-          console.log('Exercise regex match:', exerciseMatch);
-          if (exerciseMatch) {
-            parsed = {
-              exercise: exerciseMatch[1].trim(),
-              sets: parseInt(exerciseMatch[2]),
-              reps: parseInt(exerciseMatch[3]),
-              weight: parseFloat(exerciseMatch[4])
-            };
+          // Try multiple patterns for flexibility
+          const exercisePatterns = [
+            // "bench press, 3 sets of 8 at 185 pounds"
+            /(.+?),?\s*(\d+)\s*sets?\s*of\s*(\d+)\s*(?:at|@)\s*(\d+(?:\.\d+)?)\s*(?:pounds?|lbs?)?/,
+            // "bench press 3 sets 8 reps 185 pounds"
+            /(.+?)\s*(\d+)\s*sets?\s*(\d+)\s*(?:reps?)\s*(\d+(?:\.\d+)?)\s*(?:pounds?|lbs?)?/,
+            // "3 sets of 8 bench press at 185"
+            /(\d+)\s*sets?\s*of\s*(\d+)\s*(.+?)\s*(?:at|@)\s*(\d+(?:\.\d+)?)\s*(?:pounds?|lbs?)?/,
+            // "bench press 3x8 at 185"
+            /(.+?)\s*(\d+)\s*x\s*(\d+)\s*(?:at|@)\s*(\d+(?:\.\d+)?)\s*(?:pounds?|lbs?)?/,
+            // "185 pound bench press 3 sets of 8"
+            /(\d+(?:\.\d+)?)\s*(?:pounds?|lbs?)\s*(.+?)\s*(\d+)\s*sets?\s*of\s*(\d+)/,
+            // "bench press 3 by 8 at 185"
+            /(.+?)\s*(\d+)\s*(?:by|x)\s*(\d+)\s*(?:at|@)?\s*(\d+(?:\.\d+)?)\s*(?:pounds?|lbs?)?/
+          ];
+
+          for (let i = 0; i < exercisePatterns.length; i++) {
+            const match = text.match(exercisePatterns[i]);
+            console.log(`Exercise pattern ${i + 1} match:`, match);
+            
+            if (match) {
+              if (i === 2) {
+                // Pattern 3: sets first, then exercise, then weight
+                parsed = {
+                  exercise: match[3].trim(),
+                  sets: parseInt(match[1]),
+                  reps: parseInt(match[2]),
+                  weight: parseFloat(match[4])
+                };
+              } else if (i === 4) {
+                // Pattern 5: weight first, then exercise, then sets/reps
+                parsed = {
+                  exercise: match[2].trim(),
+                  sets: parseInt(match[3]),
+                  reps: parseInt(match[4]),
+                  weight: parseFloat(match[1])
+                };
+              } else {
+                // Standard order: exercise, sets, reps, weight
+                parsed = {
+                  exercise: match[1].trim(),
+                  sets: parseInt(match[2]),
+                  reps: parseInt(match[3]),
+                  weight: parseFloat(match[4])
+                };
+              }
+              break;
+            }
           }
           break;
 
