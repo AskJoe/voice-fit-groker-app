@@ -349,14 +349,19 @@ export function DayDetailView({
           </CardHeader>
           <CardContent className="space-y-4">
             {workoutPlan.exercises.map((exercise, index) => {
-              // Create a simple hash-based UUID for each exercise
-              // Combine workout plan ID with exercise details to ensure uniqueness
-              const exerciseKey = `${workoutPlan.id}-${exercise.name}-${index}`;
-              const hash = exerciseKey.split('').reduce((a, b) => {
-                a = ((a << 5) - a) + b.charCodeAt(0);
-                return a & a;
-              }, 0);
-              const exerciseId = `exercise-${Math.abs(hash).toString(16)}-${index}`;
+              // Generate a deterministic UUID v5 based on workout plan ID and exercise index
+              // This ensures consistent UUIDs for the same exercise
+              const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'; // Standard namespace UUID
+              const name = `${workoutPlan.id}-${exercise.name}-${index}`;
+              
+              // Simple deterministic UUID generation
+              let hash = 0;
+              for (let i = 0; i < name.length; i++) {
+                hash = ((hash << 5) - hash + name.charCodeAt(i)) & 0xffffffff;
+              }
+              const hex = Math.abs(hash).toString(16).padStart(8, '0');
+              const exerciseId = `${hex.slice(0,8)}-${hex.slice(0,4)}-4${hex.slice(1,4)}-8${hex.slice(4,7)}-${hex}${hex.slice(0,4)}`;
+              
               const log = getLogForItem(exerciseId, 'exercise');
               const isCompleted = log?.completed || false;
               const displayDetails = log?.modified_details || exercise;
