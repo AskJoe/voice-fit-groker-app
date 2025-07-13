@@ -78,17 +78,64 @@ export function ProgressDashboard({ user }: ProgressDashboardProps) {
       }
       setNutritionData(mockNutritionData);
 
-      // Load workout completion data (simplified)
-      const mockWorkoutData: WorkoutData[] = [];
-      for (let i = 0; i < 7; i++) {
-        const date = subDays(endDate, i);
-        mockWorkoutData.unshift({
-          date: format(date, 'yyyy-MM-dd'),
-          workouts_completed: Math.floor(Math.random() * 4) + 1,
-          total_workouts: 4
+      // Load actual workout completion data from daily_logs
+      const workoutCompletionData: WorkoutData[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = format(subDays(endDate, i), 'yyyy-MM-dd');
+        
+        // Get workout plan for this day
+        const dayOfWeek = format(subDays(endDate, i), 'EEEE');
+        const { data: workoutPlan } = await supabase
+          .from('workout_plans')
+          .select('id, exercises')
+          .eq('user_id', user.id)
+          .eq('day', dayOfWeek)
+          .single();
+
+        let workouts_completed = 0;
+        let total_workouts = 0;
+
+        if (workoutPlan && workoutPlan.exercises) {
+          const exercises = workoutPlan.exercises as any[];
+          total_workouts = exercises.length;
+
+          // Check completion for each exercise
+          for (let index = 0; index < exercises.length; index++) {
+            const exercise = exercises[index];
+            // Use the same ID generation logic as in DayDetailView
+            const namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+            const name = `${workoutPlan.id}-${exercise.name}-${index}`;
+            
+            let hash = 0;
+            for (let j = 0; j < name.length; j++) {
+              hash = ((hash << 5) - hash + name.charCodeAt(j)) & 0xffffffff;
+            }
+            const hex = Math.abs(hash).toString(16).padStart(8, '0');
+            const exerciseId = `${hex.slice(0,8)}-${hex.slice(0,4)}-4${hex.slice(1,4)}-8${hex.slice(4,7)}-${hex}${hex.slice(0,4)}`;
+
+            const { data: log } = await supabase
+              .from('daily_logs')
+              .select('completed')
+              .eq('user_id', user.id)
+              .eq('date', date)
+              .eq('item_id', exerciseId)
+              .eq('item_type', 'exercise')
+              .single();
+
+            if (log?.completed) {
+              workouts_completed++;
+            }
+          }
+        }
+
+        workoutCompletionData.push({
+          date,
+          workouts_completed,
+          total_workouts
         });
       }
-      setWorkoutData(mockWorkoutData);
+      
+      setWorkoutData(workoutCompletionData);
 
     } catch (error) {
       console.error('Error loading progress data:', error);
