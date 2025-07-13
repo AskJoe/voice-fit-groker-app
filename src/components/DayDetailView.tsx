@@ -90,7 +90,18 @@ export function DayDetailView({
   };
 
   const getDailyNutritionTotals = () => {
-    return mealPlans.reduce((totals, meal) => {
+    const potential = mealPlans.reduce((totals, meal) => {
+      const log = getLogForItem(meal.id, 'meal');
+      const details = log?.modified_details || meal.details;
+      return {
+        calories: totals.calories + (details.calories || 0),
+        protein: totals.protein + (details.protein || 0),
+        fat: totals.fat + (details.fat || 0),
+        carbs: totals.carbs + (details.carbs || 0)
+      };
+    }, { calories: 0, protein: 0, fat: 0, carbs: 0 });
+
+    const actual = mealPlans.reduce((totals, meal) => {
       const log = getLogForItem(meal.id, 'meal');
       // Only count calories if the meal is marked as completed
       if (log?.completed) {
@@ -104,6 +115,8 @@ export function DayDetailView({
       }
       return totals;
     }, { calories: 0, protein: 0, fat: 0, carbs: 0 });
+
+    return { potential, actual };
   };
 
   const nutritionTotals = getDailyNutritionTotals();
@@ -120,25 +133,61 @@ export function DayDetailView({
       <Card className="bg-white/10 backdrop-blur-sm border-white/20">
         <CardHeader>
           <CardTitle className="text-center text-white">Daily Nutrition Progress</CardTitle>
-          <p className="text-center text-white/70 text-sm">Only completed meals count toward totals</p>
+          <p className="text-center text-white/70 text-sm">Actual vs Target</p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div className="bg-white/5 rounded-lg p-3">
-              <div className="text-2xl font-bold text-white">{nutritionTotals.calories}</div>
+              <div className="text-2xl font-bold text-white">
+                {nutritionTotals.actual.calories}
+                <span className="text-white/50 text-lg">/{nutritionTotals.potential.calories}</span>
+              </div>
               <div className="text-sm text-white/70">Calories</div>
+              <div className="w-full bg-white/20 rounded-full h-1.5 mt-2">
+                <div 
+                  className="bg-white h-1.5 rounded-full transition-all duration-300" 
+                  style={{ width: `${Math.min((nutritionTotals.actual.calories / nutritionTotals.potential.calories) * 100, 100)}%` }}
+                ></div>
+              </div>
             </div>
             <div className="bg-white/5 rounded-lg p-3">
-              <div className="text-2xl font-bold text-white">{nutritionTotals.protein}g</div>
+              <div className="text-2xl font-bold text-white">
+                {nutritionTotals.actual.protein}
+                <span className="text-white/50 text-lg">/{nutritionTotals.potential.protein}</span>g
+              </div>
               <div className="text-sm text-white/70">Protein</div>
+              <div className="w-full bg-white/20 rounded-full h-1.5 mt-2">
+                <div 
+                  className="bg-white h-1.5 rounded-full transition-all duration-300" 
+                  style={{ width: `${Math.min((nutritionTotals.actual.protein / nutritionTotals.potential.protein) * 100, 100)}%` }}
+                ></div>
+              </div>
             </div>
             <div className="bg-white/5 rounded-lg p-3">
-              <div className="text-2xl font-bold text-white">{nutritionTotals.fat}g</div>
+              <div className="text-2xl font-bold text-white">
+                {nutritionTotals.actual.fat}
+                <span className="text-white/50 text-lg">/{nutritionTotals.potential.fat}</span>g
+              </div>
               <div className="text-sm text-white/70">Fat</div>
+              <div className="w-full bg-white/20 rounded-full h-1.5 mt-2">
+                <div 
+                  className="bg-white h-1.5 rounded-full transition-all duration-300" 
+                  style={{ width: `${Math.min((nutritionTotals.actual.fat / nutritionTotals.potential.fat) * 100, 100)}%` }}
+                ></div>
+              </div>
             </div>
             <div className="bg-white/5 rounded-lg p-3">
-              <div className="text-2xl font-bold text-white">{nutritionTotals.carbs}g</div>
+              <div className="text-2xl font-bold text-white">
+                {nutritionTotals.actual.carbs}
+                <span className="text-white/50 text-lg">/{nutritionTotals.potential.carbs}</span>g
+              </div>
               <div className="text-sm text-white/70">Carbs</div>
+              <div className="w-full bg-white/20 rounded-full h-1.5 mt-2">
+                <div 
+                  className="bg-white h-1.5 rounded-full transition-all duration-300" 
+                  style={{ width: `${Math.min((nutritionTotals.actual.carbs / nutritionTotals.potential.carbs) * 100, 100)}%` }}
+                ></div>
+              </div>
             </div>
           </div>
         </CardContent>
