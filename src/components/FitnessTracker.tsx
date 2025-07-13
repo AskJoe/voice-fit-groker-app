@@ -79,33 +79,33 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
           { 
             meal_type: 'Breakfast', 
             details: { 
-              items: ['3 large eggs (scrambled or boiled)', '1 medium bagel (plain)', '1 cup plain Greek yogurt'], 
-              calories: 600, 
-              protein: 50 
+              items: ['3 large eggs (scrambled or boiled)', '1 medium bagel with cream cheese', '1 cup plain Greek yogurt'], 
+              calories: 720, 
+              protein: 42 
             } 
           },
           { 
             meal_type: 'Lunch', 
             details: { 
-              items: ['6 oz grilled chicken breast', '1 cup cooked white rice', '1 oz almonds'], 
-              calories: 550, 
-              protein: 55 
+              items: ['6 oz grilled chicken breast', '1.5 cups cooked white rice', '1 oz almonds (about 23 nuts)'], 
+              calories: 680, 
+              protein: 58 
             } 
           },
           { 
             meal_type: 'Dinner', 
             details: { 
-              items: ['8 oz grilled steak (lean cut, e.g., sirloin)', '1 medium sweet potato (baked, ~130g)', '1 oz walnuts'], 
-              calories: 650, 
-              protein: 60 
+              items: ['8 oz grilled lean steak (sirloin)', '1 large baked sweet potato (about 5 inches)', '1 oz walnuts (about 14 halves)'], 
+              calories: 820, 
+              protein: 64 
             } 
           },
           { 
             meal_type: 'Snack', 
             details: { 
-              items: ['2 large eggs (hard-boiled)', '1/2 cup cooked pasta (plain)'], 
-              calories: 300, 
-              protein: 45 
+              items: ['2 large hard-boiled eggs', '1 cup cooked pasta with olive oil'], 
+              calories: 480, 
+              protein: 22 
             } 
           }
         ];
