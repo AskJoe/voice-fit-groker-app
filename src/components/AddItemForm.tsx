@@ -65,6 +65,8 @@ export function AddItemForm({ type, userId, selectedDate, onItemAdded }: AddItem
             meal: foodData.items.join(', '),
             calories: foodData.calories,
             protein: foodData.protein,
+            fat: foodData.fat,
+            carbs: foodData.carbs,
             date: selectedDate.toISOString(),
           });
 

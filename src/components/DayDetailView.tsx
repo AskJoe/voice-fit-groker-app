@@ -60,6 +60,8 @@ interface DayDetailViewProps {
     meal: string;
     calories: number | null;
     protein: number | null;
+    fat: number | null;
+    carbs: number | null;
   }>;
   exerciseEntries: Array<{
     id: string;
@@ -219,8 +221,8 @@ export function DayDetailView({
     const foodTotals = foodEntries.reduce((totals, food) => ({
       calories: totals.calories + parseNumeric(food.calories),
       protein: totals.protein + parseNumeric(food.protein),
-      fat: totals.fat + 0, // food table doesn't have fat/carbs yet
-      carbs: totals.carbs + 0
+      fat: totals.fat + parseNumeric(food.fat),
+      carbs: totals.carbs + parseNumeric(food.carbs)
     }), { calories: 0, protein: 0, fat: 0, carbs: 0 });
 
     return { 

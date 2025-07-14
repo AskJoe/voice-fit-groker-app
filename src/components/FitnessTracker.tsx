@@ -55,6 +55,8 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
     meal: string;
     calories: number | null;
     protein: number | null;
+    fat: number | null;
+    carbs: number | null;
   }>>([]);
   const [exerciseEntries, setExerciseEntries] = useState<Array<{
     id: string;
