@@ -185,9 +185,12 @@ export function DayDetailView({
       return 0;
     };
 
+    console.log('Meal plans for calculation:', mealPlans);
     const potential = mealPlans.reduce((totals, meal) => {
       const log = getLogForItem(meal.id, 'meal');
       const details = log?.modified_details || meal.details;
+      console.log(`Processing meal ${meal.meal_type}:`, details);
+      console.log(`Adding calories: ${parseNumeric(details.calories)}`);
       return {
         calories: totals.calories + parseNumeric(details.calories),
         protein: totals.protein + parseNumeric(details.protein),
@@ -195,6 +198,7 @@ export function DayDetailView({
         carbs: totals.carbs + parseNumeric(details.carbs)
       };
     }, { calories: 0, protein: 0, fat: 0, carbs: 0 });
+    console.log('Final potential totals:', potential);
 
     const actual = mealPlans.reduce((totals, meal) => {
       const log = getLogForItem(meal.id, 'meal');
