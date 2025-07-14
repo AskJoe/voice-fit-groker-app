@@ -101,41 +101,41 @@ export function FitnessTracker({ user, onSignOut }: FitnessTrackerProps) {
           { 
             meal_type: 'Breakfast', 
             details: { 
-              items: ['3 large eggs (scrambled or boiled)', '1 medium bagel with cream cheese', '1 cup plain Greek yogurt'], 
-              calories: 720, 
-              protein: 42,
-              fat: 28,
-              carbs: 45
+              items: ['2 large eggs', '1 slice whole grain toast', '1/2 cup oatmeal'], 
+              calories: 450, 
+              protein: 25,
+              fat: 15,
+              carbs: 35
             } 
           },
           { 
             meal_type: 'Lunch', 
             details: { 
-              items: ['6 oz grilled chicken breast', '1.5 cups cooked white rice', '1 oz almonds (about 23 nuts)'], 
-              calories: 680, 
-              protein: 58,
-              fat: 18,
-              carbs: 72
+              items: ['4 oz grilled chicken breast', '1 cup brown rice', 'Mixed vegetables'], 
+              calories: 500, 
+              protein: 40,
+              fat: 12,
+              carbs: 45
             } 
           },
           { 
             meal_type: 'Dinner', 
             details: { 
-              items: ['8 oz grilled lean steak (sirloin)', '1 large baked sweet potato (about 5 inches)', '1 oz walnuts (about 14 halves)'], 
-              calories: 820, 
-              protein: 64,
-              fat: 32,
-              carbs: 38
+              items: ['5 oz lean protein', '1 medium sweet potato', 'Green salad'], 
+              calories: 550, 
+              protein: 45,
+              fat: 18,
+              carbs: 40
             } 
           },
           { 
             meal_type: 'Snack', 
             details: { 
-              items: ['2 large hard-boiled eggs', '1 cup cooked pasta with olive oil'], 
-              calories: 480, 
-              protein: 22,
-              fat: 18,
-              carbs: 52
+              items: ['Greek yogurt', 'Mixed nuts (1 oz)'], 
+              calories: 300, 
+              protein: 15,
+              fat: 12,
+              carbs: 20
             } 
           }
         ];
